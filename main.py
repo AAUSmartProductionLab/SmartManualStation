@@ -1,6 +1,7 @@
 import argparse
 import coloredlogs, logging
 from pick_by_light import PickByLight
+from gui import Gui
 
 
 parser = argparse.ArgumentParser(
@@ -37,10 +38,11 @@ if __name__ == "__main__":
 
     PBL.select_port(1)
 
+    GUI = Gui(PBL)
+
+
     try:
-        while True:
-            PBL.get_port_state(1)
-            sleep(1)
+        GUI.run()
     except KeyboardInterrupt:
         print('interrupted!')
 

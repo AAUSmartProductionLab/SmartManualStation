@@ -9,7 +9,8 @@ class DummyPort:
         self.port_number = port_number
         self.activity_timestamp = datetime.now() - timedelta(minutes=10) # arbitrary time in the past. 
         self.cooldown_time = timedelta(seconds=5)
-        self._light_state = 0
+        self._light_duty_cycle = 0
+        self._last_light_print = 0
         Thread(target=self._pir_dummy_thread, daemon=True).start()  #
 
         self.activity_callback = None
@@ -23,13 +24,16 @@ class DummyPort:
     def time_since_activity(self):
         return datetime.now() - self.activity_timestamp
 
-    def set_light(self, state):
-        if state != self._light_state:  # just to slow down the prints in terminal
-            self._light_state = state
-            print("The light on port: ", self.port_number, " is set to:", self._light_state)
+    def set_light(self, duty_cycle):
+        self._light_duty_cycle = duty_cycle
+        # The dummy port just print the light level in the terminal for every 20 step
+        # just to slow down the prints in terminal
+        if abs(self._last_light_print - duty_cycle) >= 10:
+            self._last_light_print = duty_cycle
+            print("The light on port: ", self.port_number, " is set to:", self._light_duty_cycle)
     
-    def get_light(self) -> bool:
-        return self._light_state
+    def get_light(self) -> int:
+        return self._light_duty_cycle
     
     def make_activity(self):
         self.activity_timestamp = datetime.now()
@@ -49,7 +53,7 @@ class DummyPort:
             self.activity_callback(self.port_number)
 
     def _callbacks(self):
-        if activity_callback is not None:
+        if self.activity_callback is not None:
             self.activity_callback(self.port_number)  
 
 

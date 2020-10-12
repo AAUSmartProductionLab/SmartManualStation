@@ -4,10 +4,10 @@ import os
 from datetime import datetime, timedelta
 import RPi.GPIO as GPIO
 
-
 logger = logging.getLogger() # Gives the root logger.  Change this for better organization
 
 GPIO.setmode(GPIO.BOARD)
+
 
 class PiPort:
     __ports_config = {}
@@ -17,12 +17,17 @@ class PiPort:
         self.activity_timestamp = datetime.now() - timedelta(minutes=10) # default is an arbitrary time in the past. 
         self.cooldown_time = timedelta(seconds=5)
 
-        self.activity_callback = None
-
-        
         # GPIO setup
         GPIO.setup(self._pir_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.setup(self._led_pin, GPIO.OUT)
+
+        self.activity_callback = None
+        self.light_pwm = GPIO.PWM(self._led_pin, 1000)
+        self.light_pwm.start(0)
+        self._light_duty_cycle = 0
+
+
+        
 
         # Add interupt and callback function when there's a change on the pir pin. 
         GPIO.add_event_detect(self._pir_pin, GPIO.RISING, callback=self._pir_callback)
@@ -66,11 +71,13 @@ class PiPort:
     def time_since_activity(self):
         return datetime.now() - self.activity_timestamp
     
-    def set_light(self, state):
-        return GPIO.output(self._led_pin, state)
+    def set_light(self, duty_cycle):
+        # limit between 0 and 100
+        self._light_duty_cycle = max(min(duty_cycle, 100), 0)
+        return self.light_pwm.ChangeDutyCycle(self._light_duty_cycle)
     
-    def get_light(self) -> bool:
-        return GPIO.input(self._led_pin)  
+    def get_light(self) -> int:
+        return self._light_duty_cycle  
 
     def make_activity(self):
         print('Activity at port %s' % self.port_number)
