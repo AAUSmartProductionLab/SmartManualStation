@@ -1,10 +1,11 @@
-import coloredlogs, logging
+import logging
 import yaml
 import os
 from datetime import datetime, timedelta
 import RPi.GPIO as GPIO
 
-logger = logging.getLogger() # Gives the root logger.  Change this for better organization
+logger = logging.getLogger(__name__) # Gives the root logger.  Change this for better organization
+logger.setLevel(logging.WARNING)
 
 GPIO.setmode(GPIO.BOARD)
 

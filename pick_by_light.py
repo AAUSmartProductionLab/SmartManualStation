@@ -1,8 +1,11 @@
 from dummy_port import DummyPort as Port
 from typing import List
-import coloredlogs, logging
+import logging
 from time import sleep, time
 from threading import Thread
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 class PortState:
     def __init__(self,port_number):
@@ -24,34 +27,37 @@ class PickByLight:
 
     def select_port(self, port_number, amount = 1):
         if port_number not in self._ports.keys():
-            logging.error('port number {} does not exist'.format(port_number))
-            return
+            logger.error('port number {} does not exist'.format(port_number))
+            return False
         
         if amount <= 0: 
-            logging.error('Cannot pick negative or zero amount')
-            return
+            logger.error('Cannot pick negative or zero amount')
+            return False
         
         self._ports_state[port_number].selected = True
         self._ports_state[port_number].amount_to_pick = amount
         Thread(target=self._signal_thread, args=(port_number,), daemon=True).start()
+        return True
 
     def deselect_port(self, port_number):
         if port_number not in self._ports.keys():
-            logging.error('port number {} does not exist'.format(port_number))
-            return
+            logger.error('port number {} does not exist'.format(port_number))
+            return False
 
         self._ports_state[port_number].selected = False
         self._ports_state[port_number].amount_to_pick = 0
+        return True
     
     def deselect_all(self):
+        results = []
         for port_number in self._ports.keys():
-            self.deselect_port(port_number)
-        #wait for all ports to turn off
-        sleep(2)
+            r = self.deselect_port(port_number)
+            results.append(r)
+        return all(results)
 
     def get_port_state(self, port_number):
         if port_number not in self._ports.keys():
-            logging.error('port number {} does not exist'.format(port_number))
+            logger.error('port number {} does not exist'.format(port_number))
             return None
         return self._ports_state[port_number]  
 
@@ -74,7 +80,7 @@ class PickByLight:
 
     def _warning_signal_thread(self, port_number):
         if port_number in self._warning_signalers:
-            logging.debug('tried to spawn _warning_signal_thread but port number {} was already running'.format(port_number))
+            logger.debug('tried to spawn _warning_signal_thread but port number {} was already running'.format(port_number))
             return
         self._warning_signalers.append(port_number)
         for i in range(5):
@@ -90,7 +96,7 @@ class PickByLight:
     
     def _signal_thread(self,port_number):
         if port_number in self._signalers:
-            logging.debug('tried to spawn _signal_thread but port number {} was already running'.format(port_number))
+            logger.debug('tried to spawn _signal_thread but port number {} was already running'.format(port_number))
             return
         self._signalers.append(port_number)
 

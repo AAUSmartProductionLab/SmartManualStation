@@ -1,7 +1,14 @@
+#!/usr/var/Python3
+
 import argparse
-import coloredlogs, logging
-from pick_by_light import PickByLight
+import pick_by_light
 from gui import Gui
+import station_ua_server as suas
+import coloredlogs, logging  
+import os
+
+coloredlogs.install(level = logging.WARNING)
+logger = logging.getLogger(__name__)
 
 
 parser = argparse.ArgumentParser(
@@ -13,14 +20,14 @@ parser.add_argument("-d", "--dummy", help="run in dummy mode without the actual 
 
 args = parser.parse_args()
 if args.verbose:
-    coloredlogs.install(level = logging.DEBUG)
-else:
-    coloredlogs.install(level = logging.WARNING)
+    logger.setLevel(logging.DEBUG)
+    pick_by_light.logger.setLevel(logging.DEBUG)
+    suas.logger.setLevel(logging.DEBUG)
 
 # Load either the dummy ports or the pi ports 
 if args.dummy:
     from dummy_port import DummyPort as Port
-    logging.warn("Running in dummy mode")
+    logger.warn("Running in dummy mode")
 else:
     from pi_port import PiPort as Port
     # load the default ports
@@ -34,15 +41,19 @@ if __name__ == "__main__":
     ports = [Port(i) for i in range(1,7)]
 
     # create our pick by light object
-    PBL = PickByLight(ports)
+    PBL = pick_by_light.PickByLight(ports)
 
     PBL.select_port(1)
+
+    SUAS = suas.StationUAServer(PBL)
 
     GUI = Gui(PBL)
 
 
     try:
         GUI.run()
+        SUAS.ua_server.stop()
+        # GUI.run blocks untill it exits
     except KeyboardInterrupt:
         print('interrupted!')
 

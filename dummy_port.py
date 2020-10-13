@@ -3,6 +3,9 @@ from random import randint
 from time import sleep
 from threading import Thread
 
+import logging  
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 class DummyPort:
     def __init__(self, port_number):
@@ -30,7 +33,7 @@ class DummyPort:
         # just to slow down the prints in terminal
         if abs(self._last_light_print - duty_cycle) >= 10:
             self._last_light_print = duty_cycle
-            print("The light on port: ", self.port_number, " is set to:", self._light_duty_cycle)
+            logger.info("The light on port: {} is set set to: {}".format(self.port_number, self._light_duty_cycle))
     
     def get_light(self) -> int:
         return self._light_duty_cycle
@@ -48,7 +51,7 @@ class DummyPort:
     def _pir_dummy_thread(self):
         while True:
             sleep(randint(5, 60))
-            print("activity on: ", self.port_number)
+            logger.info("activity on: {}".format(self.port_number))
             self.activity_timestamp = datetime.now()
             self.activity_callback(self.port_number)
 
