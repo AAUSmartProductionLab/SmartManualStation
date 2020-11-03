@@ -14,7 +14,9 @@ class DummyPort:
         self.cooldown_time = timedelta(seconds=5)
         self._light_duty_cycle = 0
         self._last_light_print = 0
-        Thread(target=self._pir_dummy_thread, daemon=True).start()  #
+
+        #start a thread that randomly picks boxes at random times.
+#        Thread(target=self._pir_dummy_thread, daemon=True).start()  #
 
         self.activity_callback = None
 
