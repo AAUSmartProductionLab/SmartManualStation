@@ -3,29 +3,36 @@ from typing import List
 import logging
 from time import sleep, time
 from threading import Thread
+import os
+import yaml
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class PortState:
     def __init__(self,port_number):
         self.port_number = port_number
         self.selected = False
         self.amount_to_pick = 0
-        self.content = None
+        self.select_instructions = ''
 
 
 class PickByLight:
 
-    def __init__(self,ports: List[Port]):
+    def __init__(self,ports: List[Port], default_content_map_path = None):
         # create dict of all the port objects for the rack.
         self._ports = {port.port_number : port for port in ports}
         self._ports_state = {port_number : PortState(port_number) for port_number in self._ports.keys()}
         self._set_callbacks()
         self._warning_signalers = []
         self._signalers = []
+        self._content_map = {}
 
-    def select_port(self, port_number, amount = 1):
+        if default_content_map_path:
+            self._content_map = self.load_content_map(default_content_map_path)
+
+
+    def select_port(self, port_number, amount = 1, instructions = ''):
         if port_number not in self._ports.keys():
             logger.error('port number {} does not exist'.format(port_number))
             return False
@@ -36,6 +43,7 @@ class PickByLight:
         
         self._ports_state[port_number].selected = True
         self._ports_state[port_number].amount_to_pick = amount
+        self._ports_state[port_number].select_instructions = instructions
         Thread(target=self._signal_thread, args=(port_number,), daemon=True).start()
         return True
 
@@ -46,6 +54,7 @@ class PickByLight:
 
         self._ports_state[port_number].selected = False
         self._ports_state[port_number].amount_to_pick = 0
+        self._ports_state[port_number].select_instructions = ''
         return True
     
     def deselect_all(self):
@@ -66,12 +75,61 @@ class PickByLight:
     
     def get_port(self, port_number):
         return self._ports.get(port_number,None)
+    
+    def get_content(self, port_number):
+        return self._content_map.get(port_number,{})
+
+    def get_all_contents_display_name(self):
+        return {port_number:content.get('display_name','?') for port_number, content in self._content_map.items()}
+
+    def get_all_contents_name(self):
+        return {port_number:content.get('name','') for port_number, content in self._content_map.items()}
+
+    def get_all_contents_description(self):
+        return {port_number:content.get('description','') for port_number, content in self._content_map.items()}
+
+    def get_all_contents_image_path(self):
+        return {port_number:content.get('image_path','') for port_number, content in self._content_map.items()}
+    
+    def get_all_contents_x(self,x):
+        return {port_number:content.get(x,'') for port_number, content in self._content_map.items()}
+
+    def change_content_item(self,port_number, content):
+        if port_number in self._content_map:
+            if type(content) != dict:
+                raise TypeError('content must be of type: dict. Instead received: {}'.format(type(content)))
+            self._content_map[port_number] = content
+
+    def load_content_map(self,yaml_path):
+        # absolute path
+        _yaml_path = os.path.join('', yaml_path)
+        if not os.path.isfile(_yaml_path):
+            # try relative path
+            root_dir = os.path.abspath(os.path.dirname(__file__))
+            _yaml_path = os.path.join(root_dir, yaml_path)
+        if not os.path.isfile(_yaml_path):
+            logger.error('The content_map file: {}, could not be found. No content loaded.'.format(yaml_path))
+            return {}         
+           
+        with open(_yaml_path, 'r') as content_file:
+            content_map = yaml.safe_load(content_file)
+            logger.debug('content_map ----> {0}'.format(content_map))
+            self._content_map = content_map
+            return content_map
+    
+    def save_content_map(self, yaml_path):
+        yaml_name = os.path.basename(yaml_path)
+        if not yaml_name.endswith('.yaml'):
+            yaml_path += '.yaml'        
+        with open(yaml_path, 'w') as outfile:
+            yaml.dump(self._content_map, outfile, default_flow_style=False)
 
     def _activity_callback(self,port_number):
         if self._ports_state[port_number].selected:
-            self._ports_state[port_number].selected = False
-            self._ports_state[port_number].amount_to_pick -= 1
+            logger.info('activity on port: {} caused it do be deselected'.format(port_number))
+            self.deselect_port(port_number)
         else:
+            logger.info('activity on port: {} cased a warning light to be triggered because the port was not selected')
             Thread(target=self._warning_signal_thread,daemon=True,args=(port_number,)).start()   
     
     def _set_callbacks(self):
