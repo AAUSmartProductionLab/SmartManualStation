@@ -1,6 +1,8 @@
 import PySimpleGUI as sg
 import re
 import os
+from PIL import Image, ImageTk
+import io
 """
     Gui for pick by light 
 """
@@ -10,10 +12,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def LEDIndicator(key=None, radius=30):
-    return sg.Graph(canvas_size=(radius, radius),
+    return sg.Graph(canvas_size=(radius*2, radius*2),
              graph_bottom_left=(-radius, -radius),
              graph_top_right=(radius, radius),
-             pad=(0, 0), key=key, enable_events=True)
+             key=key, enable_events=True)
 
 
 def from_rgb(rgb):
@@ -24,69 +26,92 @@ def from_rgb(rgb):
 
 default_image = 'img/default-placeholder.png'
 def check_image(path):
+    """checks if the giver path points to a file and if not 
+    it returns a default dummy image instead.
+    
+    Args:
+        path (string): pathstring. Can be relative or absolute
+    Returns:
+        string: path to the image that shall be displayed. 
+    """
     if not os.path.isfile(path):
         return default_image
     return path    
+
+def get_img_data(image_path, maxsize=(500, 500)):
+    """Generate image data using PIL
+    """
+    img = Image.open(image_path)
+    img.thumbnail(maxsize)
+    bio = io.BytesIO()
+    img.save(bio, format="PNG")
+    del img
+    return bio.getvalue()
+# ------------------------------------------------------------------------------
 
 class Gui:
     def __init__(self, pick_by_light, default_content_map_path = None):
         self._pbl = pick_by_light
         self.window_main = self.make_win_main()
         self.window_main.maximize()
-        
+        self.windows_work = {port_number:None for port_number, port in self._pbl.get_ports()}
         self.window_virtual = None
-        self.window_work = None
+
         sg.theme('Dark Blue 3')  # please make your windows colorful
 
     def make_win_virtual(self):
-        layout = [[sg.Text('Window 2')],
+        layout = [[sg.Text('Virtual Pick By Light')],
                   [sg.Text('Select, Port, Activity, Light')]
                  ]
         for port_number, port in self._pbl.get_ports():
-            row = [sg.Check(text = None, key='_C{}_'.format(port_number), enable_events=True),
-                sg.Text('Port {}'.format(port_number)), 
-                LEDIndicator('_A{}_'.format(port_number)), 
-                LEDIndicator('_LED{}_'.format(port_number)),
+            row = [sg.Check(text = None, key='_C{}_'.format(port_number), enable_events=True, size=(2,1), auto_size_text=True,),
+                   sg.Text('Port {}'.format(port_number), size=(10,1), font=('Helvetica', 16),justification='left'), 
+                   LEDIndicator('_A{}_'.format(port_number),radius=10), 
+                   LEDIndicator('_LED{}_'.format(port_number),radius=10),
                 ]
             layout.append(row)
       
-        layout.append([sg.Button('Close',key='EXIT')])
+        layout.append([sg.Button('Close',key='EXITVIRTUAL')])
 
         return sg.Window('Window Title2', layout, finalize=True)
 
     def make_win_main(self):
-        
         content_strings = [' {}: {}'.format(port, value) for port, value in self._pbl.get_all_contents_display_name().items()]
+        
+        content = [[sg.Text('Content', font=('Helvetica', 16))],
+                   [sg.Listbox(values=content_strings, size=(30,8), no_scrollbar=True, key='CONTENTMAPLISTBOX', enable_events=True,font=('Helvetica', 16))],
+                   [sg.Button('Change/Update item', key='CHANGECONTENTITEM',size=(30,1), font=('Helvetica', 16))],
+                   [sg.Button('Load content map', key='LOADCONTENTMAP',size=(30,1), font=('Helvetica', 16))],
+                   [sg.Button('Save content map', key='SAVECONTENTMAP',size=(30,1), font=('Helvetica', 16))]]
 
-        content = [[sg.Text('Content', font=('Helvetica', 20))],
-                   [sg.Listbox(values=content_strings, size=(30,8), no_scrollbar=True, key='CONTENTMAPLISTBOX', enable_events=True)],
-                   [sg.Button('Change/Update item', key='CHANGECONTENTITEM')],
-                   [sg.Button('Load content map', key='LOADCONTENTMAP')],
-                   [sg.Button('Save content map', key='SAVECONTENTMAP')]]
+        image_aau_logo = get_img_data('img/AAU_LOGO_WHITE_UK.png',(400,400))
 
-        layout = [[sg.Text('Smart Manual Station Pick by light', justification='center', size=(50,1),font=('Helvetica', 20))],
-                  [sg.Text('Waiting for commands', justification='center', size=(50,1), font=('Helvetica', 20))],
-                [sg.Image('img/AAU_LOGO_WHITE_UK.png'),sg.Column(content)],
-                [sg.Button(button_text='Open Virtual\nPick By Light', key='OPENVIRTUAL'),
-                    sg.Button(button_text='test work window', key='TESTWORKWINDOW'),
-                    sg.Button('Exit', key = 'EXIT')
-                ],
-        ]
-        return sg.Window('Window Title', layout, finalize=True)
-
+        layout = [[sg.Text('Smart Manual Station Pick by light', justification='center', size=(40,1),font=('Helvetica', 16))],
+                  [sg.Text('Waiting for commands', justification='center', size=(40,1), font=('Helvetica', 16))],
+                  [sg.Image(data=image_aau_logo),sg.Column(content)],
+                  [sg.HorizontalSeparator(pad=(0,20))],
+                  [
+                      sg.Button(button_text='Open Virtual Pick By Light', key='OPENVIRTUAL', size=(25,1),font=('Helvetica', 16)),
+                      sg.Button('Exit', key = 'EXIT',size=(25,1),font=('Helvetica', 16))
+                  ]
+                 ]
+        return sg.Window('Window Title', layout, finalize=True ,size=(800,480))
 
     def make_win_work(self, port_number, instructions):
         text_instructions = 'Instructions: {}'.format(instructions)
         content = self._pbl.get_content(port_number)
-        image = check_image(content.get('image_path',''))
+        image_path = check_image(content.get('image_path',''))
+        content_image = get_img_data(image_path)
+        description = content.get('description','')
+        info_icon = get_img_data('img/info-circle-solid.png',maxsize=(18,18))
 
-        col = [[sg.Text('Box content name {}'.format(content.get('display_name','')), font=('Helvetica', 20) ), 
-                  sg.Button(button_text='content description', key='ShowContentDescription', image_filename='img/info-circle-solid.png',tooltip='content description', size=(0,0),image_subsample=15, border_width=0, pad=(0,0))],
-               [sg.Multiline(text_instructions, size=(50,10),font=('Helvetica', 20))]    
+        col = [[sg.Text('Content: {}'.format(content.get('display_name','')), font=('Helvetica', 16) ), 
+                  sg.Image(data=info_icon,key='SHOWCONTENTDESCRIPTION',enable_events=True)],
+               [sg.Multiline(text_instructions,disabled = True, size=(50,10),font=('Helvetica', 16))]    
               ]
 
-        layout = [[sg.Column(col),sg.Image(image,size=(500,500))],
-                  [sg.Submit(size=(10,5), font=('Helvetica', 20), key='SUBMIT'), sg.Cancel(size=(10,5),font=('Helvetica', 20), key='CANCELWORK')]]
+        layout = [[sg.Column(col),sg.Image(data=content_image)],
+                  [sg.Submit(size=(10,5), font=('Helvetica', 16), key='SUBMITWORK',metadata=port_number)]]
 
         return sg.Window('smart manual station', layout, finalize=True)
 
@@ -101,38 +126,37 @@ class Gui:
         return sg.Window('Content data entry', layout, finalize=True, modal=True)
 
     def _set_virtual_led(self, window, key, color):
-        """Sets the LED indicator"""
+        """Used to sets the LED indicator on the vritual pick by light window"""
         graph = window[key]
         graph.erase()
         if type(color) in [tuple,list]: color = from_rgb(color)
-        graph.draw_circle((0, 0), 12, fill_color=color, line_color=color)
+        graph.draw_circle((0, 0), 8, fill_color=color, line_color=color)
 
     def _set_checkbox(self, window, key, value):
-        """Updates the value of the checkbox"""
+        """Updates the value of the checkbox on the virtual pick by light window"""
         check = window[key]
         check.Update(value=value)
 
     def _update_content_listbox(self):
+        """Updates the content list on the main window"""
         content_strings = [' {}: {}'.format(port, value) for port, value in self._pbl.get_all_contents_display_name().items()]
         listbox = self.window_main.find_element('CONTENTMAPLISTBOX')
         listbox.Update(values=content_strings)
 
     def run(self):
-
-
+        """Blocking call that runs the GUI until it exits. 
+        """
         while True:             # Event Loop
             window, event, values = sg.read_all_windows(timeout=100)
 
             if event != '__TIMEOUT__':
                 logger.debug(window, event, values)
 
-            if event == sg.WIN_CLOSED or event in ['EXIT','SUBMIT']:
+            if event == sg.WIN_CLOSED or event in ['EXIT', 'EXITVIRTUAL']:
                 print("event win closed")
                 window.close()
                 if window == self.window_virtual:       # if closing win 2, mark as closed
                     self.window_virtual = None
-                elif window == self.window_work:
-                    self.window_work = None
                 elif window == self.window_main:     # if closing win 1, mark as closed
                     self._pbl.deselect_all()
                     
@@ -143,10 +167,11 @@ class Gui:
                     self.window_virtual = self.make_win_virtual()
                     self.window_virtual.move(self.window_main.current_location()[0], self.window_main.current_location()[1] + 220)
             
-            elif event == 'TESTWORKWINDOW':
-                if not self.window_work:
-                    self.window_work = self.make_win_work(2,'test instructions')
-                    self.window_work.maximize()
+            elif event == 'SUBMITWORK':
+                port_number = window['SUBMITWORK'].metadata
+                self._pbl.deselect_port(port_number)
+                window.close()
+                self.windows_work[port_number] = None
 
             elif event == 'LOADCONTENTMAP':
                 event, values = sg.Window('load content map', [[sg.Text('Filename')], [sg.Input(), sg.FileBrowse(initial_folder='./',file_types=(('yaml','*.yaml')))], [sg.OK(), sg.Cancel()] ]).read(close=True)
@@ -179,8 +204,11 @@ class Gui:
                     except Exception as e:
                         sg.Popup('error, could not load content map. Error = {}'.format(e))
                     
-            elif event == 'ShowContentDescription':
-                logger.debug('yaay content description pop not implemented yet.')
+            elif event == 'SHOWCONTENTDESCRIPTION':
+                content = self._pbl.get_content(port_number)
+                description = content.get('description','')
+                sg.popup(description)
+                
 
             elif '_A' in event and self.window_virtual is not None:
                 result = re.findall(r'\d+',event)
@@ -197,10 +225,17 @@ class Gui:
                 else:
                     self._pbl.deselect_port(port_number) 
             
-            elif self.window_virtual is not None: # update the values 
+            ###### update the virtual pick by light window if it is open
+            if self.window_virtual is not None: # update the values 
                 for port_number, port in self._pbl.get_ports():
                     self._set_virtual_led(self.window_virtual, '_A{}_'.format(port_number), 'green' if port.activity else 'cyan')
                     light = [int(i * port.get_light() / 100) for i in [255,255,255]]
                     self._set_virtual_led(self.window_virtual, '_LED{}_'.format(port_number), light )
                     self._set_checkbox(self.window_virtual, '_C{}_'.format(port_number), self._pbl.get_port_state(port_number).selected)
         
+            ###### Check if something is selected, open the work window
+            ports_state = self._pbl.get_ports_state()
+            for port_number, state in ports_state.items():
+                if state.selected and self.windows_work[port_number] is None:
+                    self.windows_work[port_number] = self.make_win_work(port_number,state.select_instructions)
+                    self.windows_work[port_number].maximize()

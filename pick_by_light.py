@@ -70,6 +70,9 @@ class PickByLight:
             return None
         return self._ports_state[port_number]  
 
+    def get_ports_state(self):
+        return self._ports_state
+
     def get_ports(self):
         return self._ports.items()
     

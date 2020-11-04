@@ -57,9 +57,9 @@ if __name__ == "__main__":
 
 
     try:
+        # GUI.run blocks untill it exits
         GUI.run()
         #SUAS.ua_server.stop()
-        # GUI.run blocks untill it exits
     except KeyboardInterrupt:
         print('interrupted!')
 
