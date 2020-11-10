@@ -61,10 +61,16 @@ class StationUAServer:
             # Make a folder with the port_number as the name
             b_obj = self.Status.add_object('ns=2;s=Status.Port_{}'.format(port_number), "Port_{}".format(port_number))
             
-            b_obj.add_variable("ns=2;s=Status.Port_{}.Selected".format(port_number)             ,"Selected"         , bool()).set_writable()
-            b_obj.add_variable("ns=2;s=Status.Port_{}.Activity".format(port_number)             ,"Activity"         , bool())
-            b_obj.add_variable("ns=2;s=Status.Port_{}.ActivityTimestamp".format(port_number)    ,"ActivityTimestamp", datetime.fromtimestamp(0))
-            b_obj.add_variable("ns=2;s=Status.Port_{}.LightState".format(port_number)           ,"LightState"       , 0)
+            content = self._pbl.get_content(port_number)
+
+            b_obj.add_variable("ns=2;s=Status.Port_{}.Selected".format(port_number)             ,"Selected"            , bool()).set_writable()
+            b_obj.add_variable("ns=2;s=Status.Port_{}.Activity".format(port_number)             ,"Activity"            , bool())
+            b_obj.add_variable("ns=2;s=Status.Port_{}.ActivityTimestamp".format(port_number)    ,"ActivityTimestamp"   , datetime.fromtimestamp(0))
+            b_obj.add_variable("ns=2;s=Status.Port_{}.LightState".format(port_number)           ,"LightState"          , 0)
+            b_obj.add_variable("ns=2;s=Status.Port_{}.ContentDisplayName".format(port_number)   ,"ContentDisplayName"  , content['display_name']).set_writable()
+            b_obj.add_variable("ns=2;s=Status.Port_{}.ContentName".format(port_number)          ,"ContentName"         , content['name']).set_writable()
+            b_obj.add_variable("ns=2;s=Status.Port_{}.ContentDescription".format(port_number)   ,"ContentDescription"  , content['description']).set_writable()
+            b_obj.add_variable("ns=2;s=Status.Port_{}.ContentImagePath".format(port_number)     ,"ContentImagePath"    , content['image_path']).set_writable()
 
             '''
             create command tags for clients that does not support ua methods. 
@@ -74,15 +80,21 @@ class StationUAServer:
         # Create UA subscriber node for the box. Set self as handler.
         sub = self.ua_server.create_subscription(100, self)
  
-        # Subscribe to the Select tag
+        # Subscribe to the Select tag and all the content tags
         for port_number, port in self._pbl.get_ports():
-            n = self.ua_server.get_node("ns=2;s=Status.Port_{}.Selected".format(port_number))
-            sub.subscribe_data_change(n)
-
-        pass
+            a = self.ua_server.get_node("ns=2;s=Status.Port_{}.Selected".format(port_number))
+            sub.subscribe_data_change(a)
+            b = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentDisplayName".format(port_number))
+            sub.subscribe_data_change(b)
+            c = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentName".format(port_number))
+            sub.subscribe_data_change(c)
+            d = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentDescription".format(port_number))
+            sub.subscribe_data_change(d)
+            e = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentImagePath".format(port_number))
+            sub.subscribe_data_change(e)
 
     def _event_notification(self, event):
-        print("Python: New event. No function implemented", event)
+        logger.warning("Python: New event. No function implemented", event)
 
     def _select_method(self,parrent,port_number):
         r = self._pbl.select_port(port_number.Value)
@@ -96,13 +108,8 @@ class StationUAServer:
         r = self._pbl.deselect_all()
         return [ua.Variant(value = r,varianttype=ua.VariantType.Boolean)]
 
-    def _datachange_notification(self, node, val, data):
-        """UA server callback on data change notifications
-            This is a workaround for kepware that does not support 
-            UA methods, so instead is has "trigger tags" that when 
-            set to true it works like calling a method. 
-            TODO make this more dynamic instead of hard coding the attributes. 
-        
+    def datachange_notification(self, node, val, data):
+        """UA server callback on data change notifications        
         Arguments:
             node {Node} -- [description]
             val {[type]} -- [description]
@@ -110,20 +117,37 @@ class StationUAServer:
         """
         
         logger.debug("New data change event. node:{}, value:{}".format(node, val))
-
-        #node = Node(self.ua_server,self.idx)
         
-        # Sorry about this code, but I don't see any nicer way of determining the port number than from 
-        # the identifier string. Then splitting it up to isolate the port number
+        # Sorry about these two lines of code, but I don't see any nicer way of determining the port number than from 
+        # the identifier string. Then splitting it up to isolate the port number.
+        # Example "Status.Port_2.Selected"  is split into ['Status', 'Port_2', 'Selected'] then 'Port_2' is split into 
+        # ['Port', '2'] and then the '2' is turned into an intiger.
         name = str(node.nodeid.Identifier).split(".")
         port_number = int(name[1].split("_")[1])
         
-        if val != self._pbl.get_port_state(port_number).selected:
-            if val:
-                self._pbl.select_port(port_number)
-            else:
-                self._pbl.deselect_port(port_number)
-
+        # using the split name we can assume that the last term is the tag that updated.
+        tag = name[-1] 
+        
+        # Switch for each possible tag
+        if tag == 'Selected':
+            if val != self._pbl.get_port_state(port_number).selected:
+                if val:
+                    self._pbl.select_port(port_number)
+                else:
+                    self._pbl.deselect_port(port_number)
+        elif tag == 'ContentDisplayName':
+            if str(val) != self._pbl.get_content(port_number)['display_name']:
+                self._pbl.set_content_key(port_number,'display_name', str(val))
+        elif tag == 'ContentName':
+            if str(val) != self._pbl.get_content(port_number)['name']:
+                self._pbl.set_content_key(port_number,'name', str(val))
+        elif tag == 'ContentDescription':
+            if str(val) != self._pbl.get_content(port_number)['description']:
+                self._pbl.set_content_key(port_number,'description', str(val))
+        elif tag == 'ContentImagePath':
+            if str(val) != self._pbl.get_content(port_number)['image_path']:
+                self._pbl.set_content_key(port_number,'image_path', str(val))
+    
 
     def _var_updater(self):
         while True:
@@ -141,4 +165,15 @@ class StationUAServer:
             
                 state = self._pbl.get_port_state(port_number)         
                 node = self.ua_server.get_node("ns=2;s=Status.Port_{}.Selected".format(port_number))
-                node.set_value(state.selected)          
+                node.set_value(state.selected)
+
+                content = self._pbl.get_content(port_number)
+                node = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentDisplayName".format(port_number))
+                node.set_value(content['display_name'])
+                node = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentName".format(port_number))
+                node.set_value(content['name'])
+                node = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentDescription".format(port_number))
+                node.set_value(content['description'])
+                node = self.ua_server.get_node("ns=2;s=Status.Port_{}.ContentImagePath".format(port_number))
+                node.set_value(content['image_path'])
+

@@ -6,6 +6,6 @@ piclean:
 
 
 pi2:
-	rsync -r ./ pi@192.168.1.171:SmartManualStationPython
+	rsync -rv -e'ssh -J remote.moe' ./ pi@smartmanualstationdanfoss.remote.moe:SmartManualStationPython
 pi2clean:
-	rsync -r --delete ./ pi@192.168.1.171:SmartManualStationPython
+	rsync -rv -e 'ssh -J remote.moe' --delete ./ pi@smartmanualstationdanfoss.remote.moe:SmartManualStationPython

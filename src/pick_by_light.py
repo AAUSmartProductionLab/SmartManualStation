@@ -97,11 +97,15 @@ class PickByLight:
     def get_all_contents_x(self,x):
         return {port_number:content.get(x,'') for port_number, content in self._content_map.items()}
 
-    def change_content_item(self,port_number, content):
+    def set_content(self,port_number, content):
         if port_number in self._content_map:
             if type(content) != dict:
                 raise TypeError('content must be of type: dict. Instead received: {}'.format(type(content)))
             self._content_map[port_number] = content
+
+    def set_content_key(self, port_number, key, value):
+        if port_number in self._content_map:
+            self._content_map[port_number][key] = value
 
     def load_content_map(self,yaml_path):
         # absolute path

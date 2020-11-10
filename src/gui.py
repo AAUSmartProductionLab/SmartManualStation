@@ -41,7 +41,9 @@ def check_image(path):
 def get_img_data(image_path, maxsize=(500, 500)):
     """Generate image data using PIL
     """
-    img = Image.open(image_path)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    image_apspath = os.path.join(script_dir, image_path)
+    img = Image.open(image_apspath)
     img.thumbnail(maxsize)
     bio = io.BytesIO()
     img.save(bio, format="PNG")
@@ -53,7 +55,7 @@ class Gui:
     def __init__(self, pick_by_light, default_content_map_path = None):
         self._pbl = pick_by_light
         self.window_main = self.make_win_main()
-        self.window_main.maximize()
+        self.window_main.move(0,0)
         self.windows_work = {port_number:None for port_number, port in self._pbl.get_ports()}
         self.window_virtual = None
 
@@ -65,7 +67,7 @@ class Gui:
                  ]
         for port_number, port in self._pbl.get_ports():
             row = [sg.Check(text = None, key='_C{}_'.format(port_number), enable_events=True, size=(2,1), auto_size_text=True,),
-                   sg.Text('Port {}'.format(port_number), size=(10,1), font=('Helvetica', 16),justification='left'), 
+                   sg.Text('Port {}'.format(port_number), size=(10,1), font=('Helvetica', 14),justification='left'), 
                    LEDIndicator('_A{}_'.format(port_number),radius=10), 
                    LEDIndicator('_LED{}_'.format(port_number),radius=10),
                 ]
@@ -73,47 +75,49 @@ class Gui:
       
         layout.append([sg.Button('Close',key='EXITVIRTUAL')])
 
-        return sg.Window('Window Title2', layout, finalize=True)
+        return sg.Window('Window Title2', layout, finalize=True, keep_on_top=True)
 
     def make_win_main(self):
         content_strings = [' {}: {}'.format(port, value) for port, value in self._pbl.get_all_contents_display_name().items()]
         
-        content = [[sg.Text('Content', font=('Helvetica', 16))],
-                   [sg.Listbox(values=content_strings, size=(30,8), no_scrollbar=True, key='CONTENTMAPLISTBOX', enable_events=True,font=('Helvetica', 16))],
-                   [sg.Button('Change/Update item', key='CHANGECONTENTITEM',size=(30,1), font=('Helvetica', 16))],
-                   [sg.Button('Load content map', key='LOADCONTENTMAP',size=(30,1), font=('Helvetica', 16))],
-                   [sg.Button('Save content map', key='SAVECONTENTMAP',size=(30,1), font=('Helvetica', 16))]]
+        content = [[sg.Text('Content', font=('Helvetica', 14))],
+                   [sg.Listbox(values=content_strings, size=(30,8), no_scrollbar=True, key='CONTENTMAPLISTBOX', enable_events=True,font=('Helvetica', 14))],
+                   [sg.Button('Change/Update item', key='CHANGECONTENTITEM',size=(30,1), font=('Helvetica', 14))],
+                   [sg.Button('Load content map', key='LOADCONTENTMAP',size=(30,1), font=('Helvetica', 14))],
+                   [sg.Button('Save content map', key='SAVECONTENTMAP',size=(30,1), font=('Helvetica', 14))]]
 
-        image_aau_logo = get_img_data('img/AAU_LOGO_WHITE_UK.png',(400,400))
+        image_aau_logo = get_img_data('img/aau-logo-white-uk.png',(300,300))
+        welcome_col=[[sg.Text('Smart Manual Station Pick by light', justification='center', size=(40,1),font=('Helvetica', 14))],
+                  [sg.Text('Waiting for commands', justification='center', size=(40,1), font=('Helvetica', 14))],
+                  [sg.Image(data=image_aau_logo)]]
 
-        layout = [[sg.Text('Smart Manual Station Pick by light', justification='center', size=(40,1),font=('Helvetica', 16))],
-                  [sg.Text('Waiting for commands', justification='center', size=(40,1), font=('Helvetica', 16))],
-                  [sg.Image(data=image_aau_logo),sg.Column(content)],
+
+        layout = [[sg.Column(welcome_col), sg.Column(content)],
                   [sg.HorizontalSeparator(pad=(0,20))],
                   [
-                      sg.Button(button_text='Open Virtual Pick By Light', key='OPENVIRTUAL', size=(25,1),font=('Helvetica', 16)),
-                      sg.Button('Exit', key = 'EXIT',size=(25,1),font=('Helvetica', 16))
+                      sg.Button(button_text='Open Virtual Pick By Light', key='OPENVIRTUAL', size=(25,1),font=('Helvetica', 14)),
+                      sg.Button('Exit', key = 'EXIT',size=(25,1),font=('Helvetica', 14))
                   ]
                  ]
-        return sg.Window('Window Title', layout, finalize=True ,size=(800,480))
+        return sg.Window('Window Title', layout, finalize=True ,size=(800,480), keep_on_top=False)
 
     def make_win_work(self, port_number, instructions):
         text_instructions = 'Instructions: {}'.format(instructions)
         content = self._pbl.get_content(port_number)
         image_path = check_image(content.get('image_path',''))
-        content_image = get_img_data(image_path)
+        content_image = get_img_data(image_path, maxsize= (250,250))
         description = content.get('description','')
-        info_icon = get_img_data('img/info-circle-solid.png',maxsize=(18,18))
+        info_icon = get_img_data('./img/info-circle-solid.png',maxsize=(18,18))
 
-        col = [[sg.Text('Content: {}'.format(content.get('display_name','')), font=('Helvetica', 16) ), 
+        col = [[sg.Text('Content: {}'.format(content.get('display_name','')), font=('Helvetica', 14) ), 
                   sg.Image(data=info_icon,key='SHOWCONTENTDESCRIPTION',enable_events=True)],
-               [sg.Multiline(text_instructions,disabled = True, size=(50,10),font=('Helvetica', 16))]    
+               [sg.Multiline(text_instructions,disabled = True, size=(40,8),font=('Helvetica', 14))]    
               ]
 
         layout = [[sg.Column(col),sg.Image(data=content_image)],
-                  [sg.Submit(size=(10,5), font=('Helvetica', 16), key='SUBMITWORK',metadata=port_number)]]
+                  [sg.Submit(size=(10,5), font=('Helvetica', 14), key='SUBMITWORK',metadata=port_number)]]
 
-        return sg.Window('smart manual station', layout, finalize=True)
+        return sg.Window('smart manual station', layout, finalize=True, keep_on_top=True, metadata=port_number)
 
     def make_win_change_content(self, port_number):
         content = self._pbl.get_content(port_number)
@@ -153,19 +157,18 @@ class Gui:
                 logger.debug(window, event, values)
 
             if event == sg.WIN_CLOSED or event in ['EXIT', 'EXITVIRTUAL']:
-                print("event win closed")
+                logger.info("event win closed")
                 window.close()
                 if window == self.window_virtual:       # if closing win 2, mark as closed
                     self.window_virtual = None
                 elif window == self.window_main:     # if closing win 1, mark as closed
                     self._pbl.deselect_all()
-                    
                     break
 
             elif event == 'OPENVIRTUAL':
                 if not self.window_virtual:
                     self.window_virtual = self.make_win_virtual()
-                    self.window_virtual.move(self.window_main.current_location()[0], self.window_main.current_location()[1] + 220)
+                    self.window_virtual.move(self.window_main.current_location()[0], self.window_main.current_location()[1] + 100)
             
             elif event == 'SUBMITWORK':
                 port_number = window['SUBMITWORK'].metadata
@@ -187,10 +190,9 @@ class Gui:
                     port_number = int(re.search('[0-9]+', values['CONTENTMAPLISTBOX'][0]).group())
                     window = self.make_win_change_content(port_number)
                     event, values = window.read()
-                    print(event, values)
                     window.close()
                     if event == 'Submit':
-                        self._pbl.change_content_item(port_number,values)
+                        self._pbl.set_content(port_number,values)
                         self._update_content_listbox()
                 except IndexError:
                     logger.info('an item must be selected from the listbox')
@@ -199,7 +201,6 @@ class Gui:
                 event, values = sg.Window('Save content map', [[sg.Text('Path/Filename')], [sg.Input(key='INPUT'), sg.FileSaveAs('Browse', initial_folder='./',file_types=(('yaml','.yaml'),))], [sg.OK(), sg.Cancel()] ]).read(close=True)
                 if event == 'OK':
                     try:
-                        print(event,values)
                         self._pbl.save_content_map(values['INPUT'])
                     except Exception as e:
                         sg.Popup('error, could not load content map. Error = {}'.format(e))
@@ -207,7 +208,7 @@ class Gui:
             elif event == 'SHOWCONTENTDESCRIPTION':
                 content = self._pbl.get_content(port_number)
                 description = content.get('description','')
-                sg.popup(description)
+                sg.popup(description, keep_on_top=True)
                 
 
             elif '_A' in event and self.window_virtual is not None:
@@ -224,6 +225,7 @@ class Gui:
                     self._pbl.select_port(port_number)
                 else:
                     self._pbl.deselect_port(port_number) 
+                    self.windows_work[port_number] = None
             
             ###### update the virtual pick by light window if it is open
             if self.window_virtual is not None: # update the values 
@@ -238,4 +240,4 @@ class Gui:
             for port_number, state in ports_state.items():
                 if state.selected and self.windows_work[port_number] is None:
                     self.windows_work[port_number] = self.make_win_work(port_number,state.select_instructions)
-                    self.windows_work[port_number].maximize()
+                    self.windows_work[port_number]

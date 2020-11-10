@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     PBL.select_port(1)
 
-    #SUAS = suas.StationUAServer(PBL)
+    SUAS = suas.StationUAServer(PBL)
 
     GUI = gui.Gui(PBL)
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     try:
         # GUI.run blocks untill it exits
         GUI.run()
-        #SUAS.ua_server.stop()
+        SUAS.ua_server.stop()
     except KeyboardInterrupt:
         print('interrupted!')
 
