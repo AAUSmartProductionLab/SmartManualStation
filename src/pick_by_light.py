@@ -69,6 +69,16 @@ class PickByLight:
             logger.error('port number {} does not exist'.format(port_number))
             return None
         return self._ports_state[port_number]  
+    
+    def set_port_state(self, port_number, key, value):
+        if port_number not in self._ports.keys():
+            logger.error('port number {} does not exist'.format(port_number))
+            return False
+        if not hasattr(self._ports_state[port_number], key):
+            logger.error('port state has no attribute called {}'.format(key))
+            return False    
+        setattr(self._ports_state[port_number], key, value)
+        return True
 
     def get_ports_state(self):
         return self._ports_state
@@ -156,7 +166,7 @@ class PickByLight:
             self._ports[port_number].set_light(0)
             sleep(0.25)
 
-        self._ports[port_number].set_light(False)
+        self._ports[port_number].set_light(0)
         self._warning_signalers.remove(port_number)
     
     def _signal_thread(self,port_number):
@@ -187,7 +197,7 @@ class PickByLight:
                 sleep(0.1)
                 if port_state.selected == False: break
 
-        port.set_light(False)
+        port.set_light(0)
         self._signalers.remove(port_number)
 
 

@@ -49,8 +49,6 @@ if __name__ == "__main__":
     # create our pick by light object
     PBL = pick_by_light.PickByLight(ports, default_content_map_path=content_map)
 
-    PBL.select_port(1)
-
     SUAS = suas.StationUAServer(PBL)
 
     GUI = gui.Gui(PBL)

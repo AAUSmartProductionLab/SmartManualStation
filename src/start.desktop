@@ -4,7 +4,7 @@ Version=1.0
 Type=Application
 Name=Smart Manual Station Python
 Icon=/home/pi/SmartManualStation/logo.png
-Exec=bash -c 'python3 /home/pi/SmartManualStationPython/main.py;$SHELL'
+Exec=bash -c 'python3 /home/pi/SmartManualStation/src/main.py;$SHELL'
 Terminal=true
 
 
