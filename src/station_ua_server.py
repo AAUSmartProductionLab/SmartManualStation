@@ -155,8 +155,8 @@ class StationUAServer:
                 node = self.ua_server.get_node("ns=2;s=Command.Port_{}.Instructions".format(port_number))
                 instructions = node.get_value()
                 self._pbl.select_port(port_number, instructions=instructions)
-                else:
-                    self._pbl.deselect_port(port_number)
+            else:
+                self._pbl.deselect_port(port_number)
 
         elif tag == 'ContentDisplayName':
                 self._pbl.set_content_key(port_number,'display_name', str(val))
