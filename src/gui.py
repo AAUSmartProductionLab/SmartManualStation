@@ -66,8 +66,8 @@ class Gui:
         sg.theme('Dark Blue 3')  # please make your windows colorful
 
     def make_win_virtual(self):
-        layout = [[sg.Text('Virtual Pick By Light')],
-                  [sg.Text('Select, Port, Activity, Light')]
+        layout = [[sg.Text('Select, Port, Activity, Light')],
+                  [sg.Text('Select with the chek boxes and make\nactivity by pressing the blue dots.')]
                  ]
         for port_number, port in self._pbl.get_ports():
             row = [sg.Check(text = None, key='_C{}_'.format(port_number), enable_events=True, size=(2,1), auto_size_text=True,),
@@ -79,7 +79,7 @@ class Gui:
       
         layout.append([sg.Button('Close',key='EXITVIRTUAL')])
 
-        return sg.Window('Window Title2', layout, finalize=True, keep_on_top=True)
+        return sg.Window('Virtual', layout, finalize=True, keep_on_top=True)
 
     def make_win_main(self):
         content_strings = [' {}: {}'.format(port, value) for port, value in self._pbl.get_all_contents_display_name().items()]
@@ -103,7 +103,7 @@ class Gui:
                       sg.Button('Exit', key = 'EXIT',size=(25,1),font=('Helvetica', 14))
                   ]
                  ]
-        return sg.Window('Window Title', layout, finalize=True ,size=(800,480), keep_on_top=False)
+        return sg.Window('AAU SMART MANUAL STATION', layout, finalize=True ,size=(800,480), keep_on_top=False)
 
     def make_win_work(self, port_number, instructions):
         text_instructions = 'Instructions: {}'.format(instructions)
@@ -113,7 +113,7 @@ class Gui:
         description = content.get('description','')
         info_icon = get_img_data('./img/info-circle-solid.png',maxsize=(18,18))
 
-        col = [[sg.Text('Content: {}'.format(content.get('display_name','')), font=('Helvetica', 14) ), 
+        col = [[sg.Text('Port{} Content: {}'.format(port_number, content.get('display_name','')), font=('Helvetica', 14) ), 
                   sg.Image(data=info_icon,key='SHOWCONTENTDESCRIPTION',enable_events=True)],
                [sg.Multiline(text_instructions,disabled = True, size=(40,8),font=('Helvetica', 14))]    
               ]
@@ -121,7 +121,7 @@ class Gui:
         layout = [[sg.Column(col),sg.Image(data=content_image)],
                   [sg.Submit(size=(10,5), font=('Helvetica', 14), key='SUBMITWORK',metadata=port_number)]]
 
-        return sg.Window('smart manual station', layout, finalize=True, keep_on_top=True, metadata=port_number)
+        return sg.Window('PORT {} WORK WINDOW'.format(port_number), layout, finalize=True, keep_on_top=True, metadata=port_number)
 
     def make_win_change_content(self, port_number):
         content = self._pbl.get_content(port_number)
