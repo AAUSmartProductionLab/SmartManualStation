@@ -11,6 +11,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+
 def LEDIndicator(key=None, radius=30):
     return sg.Graph(canvas_size=(radius*2, radius*2),
              graph_bottom_left=(-radius, -radius),
@@ -58,6 +60,8 @@ class Gui:
         self.window_main.move(0,0)
         self.windows_work = {port_number:None for port_number, port in self._pbl.get_ports()}
         self.window_virtual = None
+
+        self.screen_bump = False
 
         sg.theme('Dark Blue 3')  # please make your windows colorful
 
@@ -241,3 +245,9 @@ class Gui:
                 if state.selected and self.windows_work[port_number] is None:
                     self.windows_work[port_number] = self.make_win_work(port_number,state.select_instructions)
                     self.windows_work[port_number]
+
+
+            ##### make sure the screen is turned on when there is activity
+            for port_number, port in self._pbl.get_ports():
+                if port.activity or port.get_light():
+                    os.system("sudo xset s reset")
