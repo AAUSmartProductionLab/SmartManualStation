@@ -2,7 +2,7 @@
 2:3.3V
 3:PIR
 4:LED
-5:GPIO
-6:GPIO
+5:NC
+6:NC
 7:gnd
 8:gnd
