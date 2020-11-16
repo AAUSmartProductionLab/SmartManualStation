@@ -14,3 +14,8 @@ further future features includes:
   * Webinterface
   
 
+![](./pictures/8xRJ45_board.jpg =100x)
+![](./pictures/8xRJ45_box.jpg =100x)
+![](./pictures/8xRJ45_pcb.jpg =100x)
+![](./pictures/pickByLight_and_gui.jpg =100x)
+![](./pictures/station_front_and_side.jpg =100x)
