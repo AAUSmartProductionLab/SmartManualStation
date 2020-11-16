@@ -15,18 +15,22 @@ further future features includes:
   
  # The station itself
 
-<img src="station_front_and_side.jpg" height="100"/>
-<img src="pickByLight_and_gui.jpg" height="100"/>
+<img src="pictures/station_front_and_side.jpg" height="250"/>  
+<img src="pictures/pickByLight_and_gui.jpg" height="250"/>  
 
  # Graphical Unser Interface 
-The graphical userinterface is build with [PySimpleGui](https://pysimplegui.readthedocs.io/en/latest/)
-<img src="gui_main.jpg" height="100"/>
-<img src="gui_work.jpg" height="100"/>
-<img src="gui_content.jpg" height="100"/>
-<img src="gui_virtual.jpg" height="100"/>
+The graphical userinterface is build with [PySimpleGui](https://pysimplegui.readthedocs.io/en/latest/)  
+<img src="pictures/gui_main.png" height="150"/>
+<img src="pictures/gui_content.png" height="150"/>  
+
+<img src="pictures/gui_work.png" height="150"/>
+<img src="pictures/gui_virtual.png" height="150"/>  
 
  # PCB breakout box
-Added as a git subtree to this repository. Dedicated upstream repo can be found [here](https://github.com/hjalte33/rpi-pcb)
-<img src="8xRJ45_board.jpg" height="100"/>
-<img src="8xRJ45_box.jpg" height="100"/>
-<img src="8xRJ45_pcb.jpg" height="100"/>
+Added as a git subtree to this repository. Dedicated upstream repo can be found [here](https://github.com/hjalte33/rpi-pcb)  
+
+<img src="pictures/8xRJ45_board.jpg" height="150"/>
+<img src="pictures/8xRJ45_box.jpg" height="150"/>
+<img src="pictures/8xRJ45_pcb.jpg" height="150"/>  
+
+
