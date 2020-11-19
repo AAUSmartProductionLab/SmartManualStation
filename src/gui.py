@@ -14,6 +14,15 @@ logger.setLevel(logging.DEBUG)
 
 
 def LEDIndicator(key=None, radius=30):
+    """Returns a simplegui graph element that imitates a round indicator light.
+
+    Args:
+        key (str, optional): String key to access the graph element. Defaults to None.
+        radius (int, optional): size of the created led indicator. Defaults to 30.
+
+    Returns:
+        sh.Graph: PySimpleGui graph element
+    """
     return sg.Graph(canvas_size=(radius*2, radius*2),
              graph_bottom_left=(-radius, -radius),
              graph_top_right=(radius, radius),
@@ -21,8 +30,15 @@ def LEDIndicator(key=None, radius=30):
 
 
 def from_rgb(rgb):
-    """translates an rgb tuple of int to a tkinter friendly color code
+    """Translates an rgb tuple of three int to a tkinter friendly color code
+
+    Args:
+        rgb tuple(int,int,int): red green blue values respectively
+
+    Returns:
+        str: hex string for color value
     """
+
     return '#' + ''.join('%02x'%i for i in rgb) 
 
 
@@ -54,6 +70,9 @@ def get_img_data(image_path, maxsize=(500, 500)):
 # ------------------------------------------------------------------------------
 
 class Gui:
+    """Smart Manual Station Graphical User Interface
+       
+    """
     def __init__(self, pick_by_light, default_content_map_path = None):
         self._pbl = pick_by_light
         self.window_main = self.make_win_main()
