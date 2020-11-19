@@ -9,6 +9,9 @@ The various features of the the pins have been distributed nicely in a way that 
 
 See The full pinout [in the included pdf documentation](8xRJ45%20breakout%20board%20for%20raspberry%20pi%20-%20pinout.pdf)
 
-<img src="pictures/8xRJ45_board.jpg" height="150"/>
-<img src="pictures/8xRJ45_box.jpg" height="150"/>
-<img src="pictures/8xRJ45_pcb.jpg" height="150"/>  
+<img src="pictures/8xRJ45_board.jpg" height="150"/> <img src="pictures/8xRJ45_box.jpg" height="150"/> <img src="pictures/8xRJ45_pcb.jpg" height="150"/>  
+
+## Box  
+The repository also includes a nice lasercut box that fits snugly around the pcb.  
+<img src="8xRJ45%20breakout%20board%20lasercut%20box.svg" height="150"/>  
+
