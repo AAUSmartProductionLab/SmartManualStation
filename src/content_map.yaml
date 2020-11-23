@@ -1,33 +1,44 @@
+# This file is an example of a content map for the smart manual station. 
+# Each top level element is the port_number and bellow is the data about the content. 
+# More data can be added in the same way but at the moment it will only be accessible 
+# through the gui interface and not through the OPC-UA features. 
+
+#   port_number:
+#     name : "item_name_without_spaces"
+#     display_name : 'Shot name to be displayed'
+#     description : 'Detailed description of the content'
+#     image_path : 'path/to/image/relative/or/absolute.jpg'
+#     
 
 1:
   name : "blue_front_cover"
   display_name : 'Blue front cover'
   description : 'Blue front cover for Festo phone.'
-  image_path : 'img/blue_front_cover'
+  image_path : 'img/blue_front_cover.jpg'
 2:
   name : "white_front_cover"
   display_name : 'White front cover'
   description : 'White front cover for Festo phone.'
-  image_path : 'img/white_front_cover'
+  image_path : 'img/white_front_cover.jpg'
 3:
   name : "fuse_1A"
   display_name : 'Fuse 1Amp'
   description : 'Standard fuse rated for 1 ampere.'
-  image_path : 'img/fuse_1A'
+  image_path : 'img/fuse_1A.jpg'
 4:
   name : "blue_back_cover"
   display_name : 'Blue back cover'
   description : 'Blue back cover with camera cutout for Festo phone.'
-  image_path : 'img/blue_back_cover'
+  image_path : 'img/blue_back_cover.jpg'
 5:
   name : "white_back_cover"
   display_name : 'White back cover'
   description : 'White back cover with camera cutout for Festo phone.'
-  image_path : 'img/white_back_cover'
+  image_path : 'img/white_back_cover.jpg'
 6:
   name : "pcb"
   display_name : 'PCB for Festo Phone'
   description : 'PCB with space for 2 standard fuses. Fits with the Festo phone'
-  image_path : 'img/pcb'
+  image_path : 'img/pcb.jpg'
 
 

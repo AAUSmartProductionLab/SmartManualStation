@@ -19,7 +19,7 @@ parser.add_argument("-d", "--dummy", help="run in dummy mode without the actual 
 parser.add_argument("-C", "--content_map", help="path to the content map", type=str)
 
 # If verbose flag set the debugger level accordingly on all improted files 
-# TODO this seems to not work correctly.
+# TODO Setting the debug level seems to not work correctly.
 args = parser.parse_args()
 if args.verbose:
     logger.setLevel(logging.DEBUG)
