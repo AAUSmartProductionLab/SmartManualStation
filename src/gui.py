@@ -52,9 +52,11 @@ def check_image(path):
     Returns:
         string: path to the image that shall be displayed. 
     """
-    if not os.path.isfile(path):
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    image_path = os.path.join(root_dir, path) # if path an absolute path the root dir is ignored.
+    if not os.path.isfile(image_path):
         return default_image
-    return path    
+    return image_path    
 
 def get_img_data(image_path, maxsize=(500, 500)):
     """Generate image data using PIL
