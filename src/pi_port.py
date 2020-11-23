@@ -27,9 +27,6 @@ class PiPort:
         self.light_pwm.start(0)
         self._light_duty_cycle = 0
 
-
-        
-
         # Add interupt and callback function when there's a change on the pir pin. 
         GPIO.add_event_detect(self._pir_pin, GPIO.RISING, callback=self._pir_callback)
         pass
@@ -81,9 +78,8 @@ class PiPort:
         return self._light_duty_cycle  
 
     def make_activity(self):
-        print('Activity at port %s' % self.port_number)
-        self.activity_timestamp = datetime.now()
-        self._callbacks()
+        logger.info('Made activity at port: {}'.format(self.port_number))
+        self._pir_callback()
 
     def set_activity_callback(self, activity_callback):
         if not callable(activity_callback):
@@ -104,9 +100,6 @@ class PiPort:
         # if 5 sec passed since last activity
         if datetime.now() > self.activity_timestamp + self.cooldown_time:
             print('Pir detected high at port %s' % self.port_number)
-            self._callbacks()
+            if self.activity_callback is not None:
+                self.activity_callback(self.port_number)    
             self.activity_timestamp = datetime.now()
-
-    def _callbacks(self):
-        if self.activity_callback is not None:
-            self.activity_callback(self.port_number)    
