@@ -14,6 +14,15 @@ logger.setLevel(logging.DEBUG)
 
 
 def LEDIndicator(key=None, radius=30):
+    """Returns a simplegui graph element that imitates a round indicator light.
+
+    Args:
+        key (str, optional): String key to access the graph element. Defaults to None.
+        radius (int, optional): size of the created led indicator. Defaults to 30.
+
+    Returns:
+        sh.Graph: PySimpleGui graph element
+    """
     return sg.Graph(canvas_size=(radius*2, radius*2),
              graph_bottom_left=(-radius, -radius),
              graph_top_right=(radius, radius),
@@ -21,8 +30,15 @@ def LEDIndicator(key=None, radius=30):
 
 
 def from_rgb(rgb):
-    """translates an rgb tuple of int to a tkinter friendly color code
+    """Translates an rgb tuple of three int to a tkinter friendly color code
+
+    Args:
+        rgb tuple(int,int,int): red green blue values respectively
+
+    Returns:
+        str: hex string for color value
     """
+
     return '#' + ''.join('%02x'%i for i in rgb) 
 
 
@@ -36,9 +52,11 @@ def check_image(path):
     Returns:
         string: path to the image that shall be displayed. 
     """
-    if not os.path.isfile(path):
+    root_dir = os.path.abspath(os.path.dirname(__file__))
+    image_path = os.path.join(root_dir, path) # if path an absolute path the root dir is ignored.
+    if not os.path.isfile(image_path):
         return default_image
-    return path    
+    return image_path    
 
 def get_img_data(image_path, maxsize=(500, 500)):
     """Generate image data using PIL
@@ -54,9 +72,13 @@ def get_img_data(image_path, maxsize=(500, 500)):
 # ------------------------------------------------------------------------------
 
 class Gui:
+    """Smart Manual Station Graphical User Interface.
+    Use the run function to start the gui.
+       
+    """
     def __init__(self, pick_by_light, default_content_map_path = None):
         self._pbl = pick_by_light
-        self.window_main = self.make_win_main()
+        self.window_main = self._make_win_main()
         self.window_main.move(0,0)
         self.windows_work = {port_number:None for port_number, port in self._pbl.get_ports()}
         self.window_virtual = None
@@ -65,7 +87,7 @@ class Gui:
 
         sg.theme('Dark Blue 3')  # please make your windows colorful
 
-    def make_win_virtual(self):
+    def _make_win_virtual(self):
         layout = [[sg.Text('Select, Port, Activity, Light')],
                   [sg.Text('Select with the chek boxes and make\nactivity by pressing the blue dots.')]
                  ]
@@ -81,7 +103,7 @@ class Gui:
 
         return sg.Window('Virtual', layout, finalize=True, keep_on_top=True)
 
-    def make_win_main(self):
+    def _make_win_main(self):
         content_strings = [' {}: {}'.format(port, value) for port, value in self._pbl.get_all_contents_display_name().items()]
         
         content = [[sg.Text('Content', font=('Helvetica', 14))],
@@ -105,7 +127,7 @@ class Gui:
                  ]
         return sg.Window('AAU SMART MANUAL STATION', layout, finalize=True ,size=(800,480), keep_on_top=False)
 
-    def make_win_work(self, port_number, instructions):
+    def _make_win_work(self, port_number, instructions):
         text_instructions = 'Instructions: {}'.format(instructions)
         content = self._pbl.get_content(port_number)
         image_path = check_image(content.get('image_path',''))
@@ -123,7 +145,7 @@ class Gui:
 
         return sg.Window('PORT {} WORK WINDOW'.format(port_number), layout, finalize=True, keep_on_top=True, metadata=port_number)
 
-    def make_win_change_content(self, port_number):
+    def _make_win_change_content(self, port_number):
         content = self._pbl.get_content(port_number)
         layout = []
         layout.append([sg.Text('Please update the fields to your needs')])
@@ -171,7 +193,7 @@ class Gui:
 
             elif event == 'OPENVIRTUAL':
                 if not self.window_virtual:
-                    self.window_virtual = self.make_win_virtual()
+                    self.window_virtual = self._make_win_virtual()
                     self.window_virtual.move(self.window_main.current_location()[0], self.window_main.current_location()[1] + 100)
             
             elif event == 'SUBMITWORK':
@@ -192,7 +214,7 @@ class Gui:
             elif event == 'CHANGECONTENTITEM':
                 try:    
                     port_number = int(re.search('[0-9]+', values['CONTENTMAPLISTBOX'][0]).group())
-                    window = self.make_win_change_content(port_number)
+                    window = self._make_win_change_content(port_number)
                     event, values = window.read()
                     window.close()
                     if event == 'Submit':
@@ -243,7 +265,7 @@ class Gui:
             ports_state = self._pbl.get_ports_state()
             for port_number, state in ports_state.items():
                 if state.selected and self.windows_work[port_number] is None:
-                    self.windows_work[port_number] = self.make_win_work(port_number,state.select_instructions)
+                    self.windows_work[port_number] = self._make_win_work(port_number,state.select_instructions)
                     self.windows_work[port_number]
 
 

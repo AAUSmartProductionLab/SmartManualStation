@@ -10,15 +10,16 @@ import os
 coloredlogs.install(level = logging.WARNING)
 logger = logging.getLogger(__name__)
 
-
+# Allow for arguments being passed to this file 
 parser = argparse.ArgumentParser(
     description='Smart Manual Station Project at Aalborg University'
 )
 parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 parser.add_argument("-d", "--dummy", help="run in dummy mode without the actual hardware", action="store_true")
-parser.add_argument("-C", "--content_map", help="path to the content map", action="store_true")
+parser.add_argument("-C", "--content_map", help="path to the content map", type=str)
 
-
+# If verbose flag set the debugger level accordingly on all improted files 
+# TODO Setting the debug level seems to not work correctly.
 args = parser.parse_args()
 if args.verbose:
     logger.setLevel(logging.DEBUG)
@@ -26,7 +27,7 @@ if args.verbose:
     suas.logger.setLevel(logging.DEBUG)
     gui.logger.setLevel(logging.DEBUG)
 
-# Load either the dummy ports or the pi ports 
+# Load either the dummy ports or the pi ports depending on passed argument
 if args.dummy:
     from dummy_port import DummyPort as Port
     logger.warn("Running in dummy mode")
@@ -35,6 +36,7 @@ else:
     # load the default ports
     Port.load_pinout_from_file(pin_conf_name = 'default_pin_config.yaml')
 
+# If a path string for a content map has been passed, save it, else set default.
 if args.content_map:
     content_map = args.content_map
 else:
@@ -42,22 +44,25 @@ else:
 
 
 if __name__ == "__main__":
-    from time import sleep
-    # generate a bunch of ports 
+    # generate 6 ports 
     ports = [Port(i) for i in range(1,7)]
 
-    # create our pick by light object
+    # Create our pick by light object
     PBL = pick_by_light.PickByLight(ports, default_content_map_path=content_map)
 
+    # Create our station ua serer, passing in our pick by light instance.
     SUAS = suas.StationUAServer(PBL)
 
+    # Create our gui interface, passing in our pick by light instance.
     GUI = gui.Gui(PBL)
 
 
     try:
         # GUI.run blocks untill it exits
         GUI.run()
-        SUAS.ua_server.stop()
     except KeyboardInterrupt:
         print('interrupted!')
+    finally:
+        # Finally stop the ua server
+        SUAS.ua_server.stop()
 
