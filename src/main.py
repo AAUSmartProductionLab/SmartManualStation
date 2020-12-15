@@ -4,6 +4,7 @@ import argparse
 import pick_by_light
 import gui
 import station_ua_server as suas
+import station_festo_connect as festo_connect
 import coloredlogs, logging  
 import os
 
@@ -24,13 +25,13 @@ args = parser.parse_args()
 if args.verbose:
     logger.setLevel(logging.DEBUG)
     pick_by_light.logger.setLevel(logging.DEBUG)
-    suas.logger.setLevel(logging.DEBUG)
+    suas.logger.setLevel(logging.WARNING)
     gui.logger.setLevel(logging.DEBUG)
 
 # Load either the dummy ports or the pi ports depending on passed argument
 if args.dummy:
     from dummy_port import DummyPort as Port
-    logger.warn("Running in dummy mode")
+    logger.warning("Running in dummy mode")
 else:
     from pi_port import PiPort as Port
     # load the default ports
@@ -55,6 +56,10 @@ if __name__ == "__main__":
 
     # Create our gui interface, passing in our pick by light instance.
     GUI = gui.Gui(PBL)
+
+    # Create festo connect object
+    FC = festo_connect.FestoServer(PBL,"192.168.1.68")
+
 
 
     try:
