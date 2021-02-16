@@ -17,6 +17,7 @@ class PortState:
     def __init__(self,port_number):
         self.port_number = port_number
         self.selected = False
+        self.work_finished = False
         self.amount_to_pick = 0
         self.select_instructions = ''
 
@@ -44,7 +45,7 @@ class PickByLight:
 
 
     def select_port(self, port_number, amount = 1, instructions = ''):
-        """Select a port with the giver portnumber. Instructions can be sent 
+        """Select a port with the giver port number. Instructions can be sent 
         along with the selection to instruct the worker on what to do.
 
         Args:
@@ -65,16 +66,30 @@ class PickByLight:
             return False
         
         self._ports_state[port_number].selected = True
+        self._ports_state[port_number].work_finished = False
         self._ports_state[port_number].amount_to_pick = amount
         self._ports_state[port_number].select_instructions = instructions
         Thread(target=self._signal_thread, args=(port_number,), daemon=True).start()
         return True
 
-    def deselect_port(self, port_number):
+    def work_finished(self,port_number):
+        """Set flag that the work on this port is now done and submitted.
+        This also deselects the port and turns off the light.
+
+        Args:
+            port_number (int): port number to submit work
+
+        Returns:
+            bool: success
+        """
+        return self.deselect_port(port_number, work_finished=True)
+
+    def deselect_port(self, port_number, work_finished = False):
         """Deselect a port with the giver number. 
 
         Args:
             port_number (int): The port number to be deselected
+            work_finished (bool): Is the work done 
 
         Returns:
             bool: success
@@ -84,19 +99,20 @@ class PickByLight:
             return False
 
         self._ports_state[port_number].selected = False
+        self._ports_state[port_number].work_finished = work_finished
         self._ports_state[port_number].amount_to_pick = 0
         self._ports_state[port_number].select_instructions = ''
         return True
     
     def deselect_all(self):
-        """Deselect all ports
+        """Deselect and marks all ports as finished
 
         Returns:
             bool: success. Returns True if all ports were deselected successfully.
         """
         results = []
         for port_number in self._ports.keys():
-            r = self.deselect_port(port_number)
+            r = self.deselect_port(port_number=port_number, work_finished=True)
             results.append(r)
         return all(results)
 
@@ -289,7 +305,7 @@ class PickByLight:
             Thread(target=self._warning_signal_thread,daemon=True,args=(port_number,)).start()   
     
     def _set_callbacks(self):
-        """Sets the callback on all the ports"""
+        """Sets the callback on all the ports for when an activity occurs"""
         for port_number, port in self._ports.items():
             port.set_activity_callback(self._activity_callback)
 
@@ -335,6 +351,7 @@ class PickByLight:
         port = self._ports[port_number]
         port_state = self._ports_state[port_number]
 
+        # while selected
         while port_state.selected == True:
             for i in range(0, 100+1):
                 port.set_light(i)
@@ -353,8 +370,10 @@ class PickByLight:
             for i in range(2):
                 sleep(0.1)
                 if port_state.selected == False: break
-
+        
+        # finally make sure the light is turned off
         port.set_light(0)
+
         self._signalers.remove(port_number)
 
 

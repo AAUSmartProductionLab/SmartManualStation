@@ -6,12 +6,11 @@ from pick_by_light import PickByLight
 
 import logging  
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 class FestoServer():
     def __init__(self, pick_by_light: PickByLight, festo_ip: str, ua_port = '4840'):
-        super().__init__(daemon=True)
         self._pbl = pick_by_light
 
         try:
@@ -22,126 +21,99 @@ class FestoServer():
         except socket.timeout:
             logger.warning("Failed to connect to OPC-UA on {}:{}".format(festo_ip,ua_port))
             self.connected = False
+
+        logger.info("connected to festo module on opc.tcp://{}:{}".format(festo_ip,ua_port))
         self._select_event = Event()
-        Thread(target=self.run, daemon=True)
+        Thread(target=self.run, daemon=True).start()
         
     def run(self):
         while self.connected:
             sleep(0.1)
+            
+            # Read the flag on the festo system
             flag = self.client.get_node("ns=2;s=|var|CECC-LK.Application.Flexstation_globalVariables.FlexStationStatus") 
-            status = flag.get_value()
-            if status == 1:
+            # If flag is high
+            if flag.get_value() == 1:
+                # Answer back by setting the flag = 2
                 flag.set_value(ua.Variant(2, ua.VariantType.Int16))
+                
+                # Get the operation number and order url.
                 Operation_number = self.client.get_node("ns=2;s=|var|CECC-LK.Application.FBs.stpStopper1.stAppControl.uiOpNo").get_value() # change to order id
                 Order_url = self.client.get_node("ns=2;s=|var|CECC-LK.Application.AppModul.stRcvData.sOderDes").get_value()
+                
+                # interpret the operation number nad order url
+                port_number, instructions = self.operation_number_to_port(Operation_number,Order_url)
+                
+                if port_number:
+                    self._pbl.select_port(port_number,instructions=instructions)
 
-                port_number = self.operation_number_to_port(Operation_number,Order_url)
-                while self._pbl.get_port_state(port_number).selected and status == 2:
-                    sleep(0.1)
-                    
+                    # wait until work has finished or status tag changed.
+                    while self._pbl.get_port_state(port_number).work_finished == False:
+                        if flag.get_value() != 2:
+                            self._pbl.work_finished(port_number)
+                        sleep(0.25)
+
+                # finally set the flag to 3 to signal that we are done.    
                 flag.set_value(ua.Variant(3, ua.VariantType.Int16))
+        
+        logger.warning("disconnected from festo module")
 
-    
-    def draw_pic(self, color):
-        sg.theme('Dark Blue 3')  # please make your windows colorful
+    def operation_number_to_port(self, op_number,order_url):
+        
+        """There are multiple operations the festo system can request. some are redundant but we have to 
+           concider all possible options just to be safe.
 
-        layout = [[sg.Text('pic the ' + color + ' cover', size=(50,10),font=('Helvetica', 20))],
-            [sg.Submit(size=(10,5), font=('Helvetica', 20)), sg.Cancel(size=(10,5),font=('Helvetica', 20))]]
+        Returns:
+            [int]: port number. Returns 0 if not valid
 
-        window = sg.Window('smart manual station', layout)
+        """
 
-        while True:
-            event, values = window.read()
-            print(event, values)
-            if event is None or event == 'Cancel':
-                return_val = 4
-                self._pbl.deselect_all()
-                break
-            elif event == "Submit" and self._select_event.is_set():
-                return_val = 3
-                break
-        # Finally
-        window.close()
-        self._select_event.clear()
-        return return_val
-
-    def draw_work(self, text):
-        sg.theme('Dark Blue 3')  # please make your windows colorful
-
-        layout = [[sg.Text(text, size=(50,10),font=('Helvetica', 20))],
-            [sg.Submit(size=(10,5), font=('Helvetica', 20)), sg.Cancel(size=(10,5),font=('Helvetica', 20))]]
-
-        window = sg.Window('smart manual station', layout)
-
-        while True:
-            event, values = window.read()
-            print(event, values)
-            if event is None or event == 'Cancel':
-                return_val = 4
-                self._pbl.deselect_all()
-                break
-            elif event == "Submit" and self._select_event.is_set():
-                return_val = 3
-                break
-        # Finally
-        window.close()
-        self._select_event.clear()
-        return return_val
-
-    def operation_number_handler(self, op_number,order_url):
         op_number = int(op_number)
+
+        # cover color send as a seperate parameter
         if op_number == 801:
             Operation_par = self.client.get_node("ns=2;s=|var|CECC-LK.Application.AppModul.stAppControl.auiPar").get_value()
-            if Operation_par == 0: #black
-                return self.draw_pic("black")
+            if Operation_par == 0: 
+                #black
+                return 6 , "Place a black bottom cover on the pallet"
             elif Operation_par == 1:
                 #white
-                self._pbl.select_port(port_number=1, callback=self._rack_callback)
-                return self.draw_pic("white")
+                return 5 , "Place a white bottom cover on the pallet"
             elif Operation_par == 2:
                 #blue
-                self._pbl.select_port(port_number=6, callback=self._rack_callback)
-                return self.draw_pic("blue")          
+                return 4 , "Place a blue bottom cover on the pallet"
         
-        elif op_number == 802:
-            #blue
-            self._pbl.select_port(port_number=6, callback=self._rack_callback)
-            return self.draw_pic("blue")          
         
         elif op_number == 803:
             #black
-            return self.draw_pic("black")
+            return 6, "Place a black bottom cover on the pallet"
 
         elif op_number == 804:
             #white
-            self._pbl.select_port(port_number=1, callback=self._rack_callback)
-            return self.draw_pic("white")
+            return 5 , "Place a white bottom cover on the pallet"
+        elif op_number == 802:
+            #blue
+            return 4 , "Place a blue bottom cover on the pallet"
 
+        # repare operations and generic manual operations
         elif op_number == 510:
             if "FuseLeft" in order_url:
-                self._pbl.select_port(port_number=3, callback=self._rack_callback)
-                return self.draw_work("make sure a fuse is placed left (to the right for you)")
+                return 3, "make sure a fuse is placed left (to the right for you)"
             elif "FuseRight" in order_url:
-                self._pbl.select_port(port_number=3, callback=self._rack_callback)
-                return self.draw_work("make sure a fuse is placed right (to the left for you)")
+                return 3,  "make sure a fuse is placed right (to the left for you)"
             elif "BothFuses" in order_url:
-                self._pbl.select_port(port_number=3, callback=self._rack_callback)
-                return self.draw_work("make sure both fuse are placed in the phone")
+                return 3,  "make sure both fuse are placed in the phone"
             elif "NoFuse" in order_url:
-                self._pbl.select_port(port_number=3, callback=self._rack_callback)
-                return self.draw_work("make sure no fuses are placed")
+                return 3,  "make sure no fuses are placed"
                 
             elif "Blue" in order_url and "Top" in order_url: 
-                self._pbl.select_port(port_number=6, callback=self._rack_callback)
-                return self.draw_pic("blue")
+                return 1, "Press the blue top cover on the phone. Make sure it is oriented correctly"
             elif "White" in order_url and "Top" in order_url: 
-                self._pbl.select_port(port_number=1, callback=self._rack_callback)
-                return self.draw_pic("white")
-                
+                return 2, "press the white top cover on the phone. Make sure it is oriented correctly"
 
-        else: 
-            print("{} not a valid operation".format(op_number))
-            return 404
+        # if we get here nothing matched the possible operations that we know of.
+        logger.warning("{} not a valid operation for this station".format(op_number))
+        return 0, "Received unknown operation id. id = {}".format(op_number)
 
 
 

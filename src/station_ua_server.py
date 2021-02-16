@@ -52,6 +52,7 @@ class StationUAServer:
         DummyFestoObj = root.add_object("ns=2;s=|var|CECC-LK.Application.Flexstation_globalVariables", "DummyFesto")
         DummyFestoObj.add_variable("ns=2;s=|var|CECC-LK.Application.Flexstation_globalVariables.FlexStationStatus", "FlexStationStatus", val=0).set_writable()
         DummyFestoObj.add_variable("ns=2;s=|var|CECC-LK.Application.FBs.stpStopper1.stAppControl.uiOpNo","uiOpNo", val=0).set_writable()
+        DummyFestoObj.add_variable("ns=2;s=ns=2;s=|var|CECC-LK.Application.AppModul.stRcvData.sOderDes","sOderDes", val="").set_writable()
         
 
     def _generate_tags(self):

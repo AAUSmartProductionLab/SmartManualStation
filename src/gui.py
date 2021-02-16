@@ -198,7 +198,7 @@ class Gui:
             
             elif event == 'SUBMITWORK':
                 port_number = window['SUBMITWORK'].metadata
-                self._pbl.deselect_port(port_number)
+                self._pbl.work_finished(port_number)
                 window.close()
                 self.windows_work[port_number] = None
 
