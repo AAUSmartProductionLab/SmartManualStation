@@ -22,7 +22,7 @@
   image_path : 'img/white_top_cover.jpg'
 3:
   name : "fuse_1A"
-  display_name : 'Fuse 1Amp'
+  display_name : 'Fuse 1 Amp'
   description : 'Standard fuse rated for 1 ampere.'
   image_path : 'img/fuse_1A.jpg'
 4:
