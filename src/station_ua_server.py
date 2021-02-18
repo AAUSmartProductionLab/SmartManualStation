@@ -91,7 +91,7 @@ class StationUAServer:
         Generate some common commands 
         '''
         # Make a folder for the commons
-        b_obj = self.Status.add_object('ns=2;s=Command.ByContent', 'ByContent')
+        b_obj = self.Command.add_object('ns=2;s=Command.ByContent', 'ByContent')
 
         b_obj.add_variable("ns=2;s=Command.ByContent.Select"         ,"Select"          , bool()).set_writable()
         b_obj.add_variable("ns=2;s=Command.ByContent.Deselect"       ,"Deselect"        , bool()).set_writable()
@@ -197,7 +197,7 @@ class StationUAServer:
             if val == True:
                 instructions = self.ua_server.get_node("ns=2;s=Command.ByContent.Instructions").get_value()
                 name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()
-                self._pbl.select_name(name = name, instructions=instructions)
+                self._pbl.select_content(name = name, instructions=instructions)
                 # Reset the select flag
                 node = self.ua_server.get_node("ns=2;s=Command.ByContent.Select")
                 node.set_value(False)
@@ -206,7 +206,7 @@ class StationUAServer:
                 name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()
                 self._pbl.deselect_content(name = name, work_finished=True)
                 # Reset the select flag
-                node = self.ua_server.get_node("ns=2;s=Command.ByContent.Select")
+                node = self.ua_server.get_node("ns=2;s=Command.ByContent.Deselect")
                 node.set_value(False)
 
 
