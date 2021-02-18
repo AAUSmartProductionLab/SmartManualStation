@@ -84,12 +84,14 @@ class PickByLight:
 
         Returns:
             bool: success
+            int: port number selected. returns -1 if not successful
         """
         for port_number, content in self._content_map.items():
             if content.get('name', None) == name:
-                return self.select_port(port_number, amount, instructions)
+                success = self.select_port(port_number, amount, instructions)
+                return success, port_number
         else:
-            return False
+            return False, -1
 
 
     def work_finished(self,port_number):
@@ -133,12 +135,14 @@ class PickByLight:
 
         Returns:
             bool: success
+            int: port number selected. returns -1 if not successful
         """
         for port_number, content in self._content_map.items():
             if content.get('name', None) == name:
-                return self.deselect_port(port_number, work_finished)
+                success = self.deselect_port(port_number, work_finished)
+                return success, port_number
         else:
-            return False
+            return False, -1
     
     def deselect_all(self):
         """Deselect and marks all ports as finished
