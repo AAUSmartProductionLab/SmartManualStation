@@ -11,30 +11,30 @@
 #     
 
 1:
-  name : "blue_front_cover"
-  display_name : 'Blue front cover'
-  description : 'Blue front cover for Festo phone.'
-  image_path : 'img/blue_front_cover.jpg'
+  name : "blue_top_cover"
+  display_name : 'Blue top cover'
+  description : 'Blue top cover for Festo phone.'
+  image_path : 'img/blue_top_cover.jpg'
 2:
-  name : "white_front_cover"
-  display_name : 'White front cover'
-  description : 'White front cover for Festo phone.'
-  image_path : 'img/white_front_cover.jpg'
+  name : "white_top_cover"
+  display_name : 'White top cover'
+  description : 'White top cover for Festo phone.'
+  image_path : 'img/white_top_cover.jpg'
 3:
   name : "fuse_1A"
   display_name : 'Fuse 1Amp'
   description : 'Standard fuse rated for 1 ampere.'
   image_path : 'img/fuse_1A.jpg'
 4:
-  name : "blue_back_cover"
-  display_name : 'Blue back cover'
-  description : 'Blue back cover with camera cutout for Festo phone.'
-  image_path : 'img/blue_back_cover.jpg'
+  name : "blue_bottom_cover"
+  display_name : 'Blue bottom cover'
+  description : 'Blue bottom cover with camera cutout for Festo phone.'
+  image_path : 'img/blue_bottom_cover.jpg'
 5:
-  name : "white_back_cover"
-  display_name : 'White back cover'
-  description : 'White back cover with camera cutout for Festo phone.'
-  image_path : 'img/white_back_cover.jpg'
+  name : "white_bottom_cover"
+  display_name : 'White bottom cover'
+  description : 'White bottom cover with camera cutout for Festo phone.'
+  image_path : 'img/white_bottom_cover.jpg'
 6:
   name : "pcb"
   display_name : 'PCB for Festo Phone'
