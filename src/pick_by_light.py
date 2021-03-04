@@ -73,9 +73,9 @@ class PickByLight:
         return True
     
     def select_content(self, name, amount = 1, instructions = ''):
-        """Select a port from the content within it. Instructions can bu sent
+        """Select a port from the content within it. Instructions can be sent
         along with the selection to instruct the worker on what to do. 
-        The first content that matches the input name will be selected.  
+        The first port with a matching content name will be selected.  
 
         Args:
             name (string): name of the content to be selected
@@ -135,7 +135,7 @@ class PickByLight:
 
         Returns:
             bool: success
-            int: port number selected. returns -1 if not successful
+            int: port number deselected. returns -1 if not successful
         """
         for port_number, content in self._content_map.items():
             if content.get('name', None) == name:
