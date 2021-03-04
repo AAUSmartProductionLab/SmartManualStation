@@ -1,4 +1,4 @@
-#!/usr/var/Python3
+#!/usr/bin/python3
 
 import argparse
 import pick_by_light

@@ -42,11 +42,12 @@ class FestoServer():
                 Order_url = self.client.get_node("ns=2;s=|var|CECC-LK.Application.AppModul.stRcvData.sOderDes").get_value()
                 
                 # interpret the operation number nad order url
-                port_number, instructions = self.operation_number_to_port(Operation_number,Order_url)
+                name, instructions = self.operation_number_translator(Operation_number,Order_url)
                 
-                if port_number:
-                    self._pbl.select_port(port_number,instructions=instructions)
-
+                # try to select the content with the returned name.
+                success, port_number = self._pbl.select_content(name=name, instructions=instructions)
+                
+                if success:
                     # wait until work has finished or status tag changed.
                     while self._pbl.get_port_state(port_number).work_finished == False:
                         if flag.get_value() != 2:
@@ -58,62 +59,56 @@ class FestoServer():
         
         logger.warning("disconnected from festo module")
 
-    def operation_number_to_port(self, op_number,order_url):
+    def operation_number_translator(self, op_number,order_url):
         
         """There are multiple operations the festo system can request. some are redundant but we have to 
            concider all possible options just to be safe.
 
         Returns:
-            [int]: port number. Returns 0 if not valid
+            [string]: name. Returns the name of the item to retreeve. Return empty string on failure to translate
+            [string]: instructions. returns the instructions to display 
 
         """
 
         op_number = int(op_number)
 
-        # cover color send as a seperate parameter
+        # cover color send as a separate parameter
         if op_number == 801:
             Operation_par = self.client.get_node("ns=2;s=|var|CECC-LK.Application.AppModul.stAppControl.auiPar").get_value()
             if Operation_par == 0: 
-                #black
-                return 6 , "Place a black bottom cover on the pallet"
+                return "black_bottom_cover" , "Place a black bottom cover on the pallet"
             elif Operation_par == 1:
-                #white
-                return 5 , "Place a white bottom cover on the pallet"
+                return "white_bottom_cover" , "Place a white bottom cover on the pallet"
             elif Operation_par == 2:
-                #blue
-                return 4 , "Place a blue bottom cover on the pallet"
+                return "blue_bottom_cover" , "Place a blue bottom cover on the pallet"
         
         
         elif op_number == 803:
-            #black
-            return 6, "Place a black bottom cover on the pallet"
-
+            return "black_bottom_cover", "Place a black bottom cover on the pallet"
         elif op_number == 804:
-            #white
-            return 5 , "Place a white bottom cover on the pallet"
+            return "white_bottom_cover" , "Place a white bottom cover on the pallet"
         elif op_number == 802:
-            #blue
-            return 4 , "Place a blue bottom cover on the pallet"
+            return "blue_bottom_cover" , "Place a blue bottom cover on the pallet"
 
         # repare operations and generic manual operations
         elif op_number == 510:
             if "FuseLeft" in order_url:
-                return 3, "make sure a fuse is placed left (to the right for you)"
+                return "fuse_1A", "make sure a fuse is placed left (to the right for you)"
             elif "FuseRight" in order_url:
-                return 3,  "make sure a fuse is placed right (to the left for you)"
+                return "fuse_1A",  "make sure a fuse is placed right (to the left for you)"
             elif "BothFuses" in order_url:
-                return 3,  "make sure both fuse are placed in the phone"
+                return "fuse_1A",  "make sure both fuse are placed in the phone"
             elif "NoFuse" in order_url:
-                return 3,  "make sure no fuses are placed"
+                return "fuse_1A",  "make sure no fuses are placed"
                 
             elif "Blue" in order_url and "Top" in order_url: 
-                return 1, "Press the blue top cover on the phone. Make sure it is oriented correctly"
+                return "blue_top_cover", "Press the blue top cover on the phone. Make sure it is oriented correctly"
             elif "White" in order_url and "Top" in order_url: 
-                return 2, "press the white top cover on the phone. Make sure it is oriented correctly"
+                return "white_top_cover", "press the white top cover on the phone. Make sure it is oriented correctly"
 
         # if we get here nothing matched the possible operations that we know of.
         logger.warning("{} not a valid operation for this station".format(op_number))
-        return 0, "Received unknown operation id. id = {}".format(op_number)
+        return "", ""
 
 
 

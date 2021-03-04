@@ -64,6 +64,7 @@ class StationUAServer:
             content = self._pbl.get_content(port_number)
 
             b_obj.add_variable("ns=2;s=Status.Port_{}.Selected".format(port_number)             ,"Selected"            , bool())
+            b_obj.add_variable("ns=2;s=Status.Port_{}.WorkFinished".format(port_number)         ,"WorkFinished"        , bool())
             b_obj.add_variable("ns=2;s=Status.Port_{}.Instructions".format(port_number)         ,"Instructions"        , "")
             b_obj.add_variable("ns=2;s=Status.Port_{}.Activity".format(port_number)             ,"Activity"            , bool())
             b_obj.add_variable("ns=2;s=Status.Port_{}.ActivityTimestamp".format(port_number)    ,"ActivityTimestamp"   , datetime.fromtimestamp(0))
@@ -78,12 +79,26 @@ class StationUAServer:
             '''
             b_obj = self.Command.add_object('ns=2;s=Command.Port_{}'.format(port_number), "Port_{}".format(port_number))
 
-            b_obj.add_variable("ns=2;s=Command.Port_{}.Selected".format(port_number)             ,"Selected"            , bool()).set_writable()
+            b_obj.add_variable("ns=2;s=Command.Port_{}.Select".format(port_number)               ,"Select"              , bool()).set_writable()
+            b_obj.add_variable("ns=2;s=Command.Port_{}.Deselect".format(port_number)             ,"Deselect"            , bool()).set_writable()
             b_obj.add_variable("ns=2;s=Command.Port_{}.Instructions".format(port_number)         ,"Instructions"        , "").set_writable()
             b_obj.add_variable("ns=2;s=Command.Port_{}.ContentDisplayName".format(port_number)   ,"ContentDisplayName"  , content['display_name']).set_writable()
             b_obj.add_variable("ns=2;s=Command.Port_{}.ContentName".format(port_number)          ,"ContentName"         , content['name']).set_writable()
             b_obj.add_variable("ns=2;s=Command.Port_{}.ContentDescription".format(port_number)   ,"ContentDescription"  , content['description']).set_writable()
             b_obj.add_variable("ns=2;s=Command.Port_{}.ContentImagePath".format(port_number)     ,"ContentImagePath"    , content['image_path']).set_writable()
+        
+        '''
+        Generate some common commands 
+        '''
+        # Make a folder for the commons
+        b_obj = self.Command.add_object('ns=2;s=Command.ByContent', 'ByContent')
+
+        b_obj.add_variable("ns=2;s=Command.ByContent.Select"         ,"Select"          , bool()).set_writable()
+        b_obj.add_variable("ns=2;s=Command.ByContent.Deselect"       ,"Deselect"        , bool()).set_writable()
+        b_obj.add_variable("ns=2;s=Command.ByContent.Name"           ,"Name"      , ""    ).set_writable()
+        b_obj.add_variable("ns=2;s=Command.ByContent.Instructions"   ,"Instructions"    , ""    ).set_writable()
+
+
 
     def _generate_subscriptions(self):
         # Create UA subscriber node for the box. Set self as handler.
@@ -91,9 +106,9 @@ class StationUAServer:
  
         # Subscribe to the Select tag and all the content tags
         for port_number, port in self._pbl.get_ports():
-            a = self.ua_server.get_node("ns=2;s=Status.Port_{}.Selected".format(port_number))
-            sub.subscribe_data_change(a)
-            ac = self.ua_server.get_node("ns=2;s=Command.Port_{}.Selected".format(port_number))
+            ac = self.ua_server.get_node("ns=2;s=Command.Port_{}.Select".format(port_number))
+            sub.subscribe_data_change(ac)
+            ac = self.ua_server.get_node("ns=2;s=Command.Port_{}.Deselect".format(port_number))
             sub.subscribe_data_change(ac)
             b = self.ua_server.get_node("ns=2;s=Command.Port_{}.ContentDisplayName".format(port_number))
             sub.subscribe_data_change(b)
@@ -103,6 +118,14 @@ class StationUAServer:
             sub.subscribe_data_change(d)
             e = self.ua_server.get_node("ns=2;s=Command.Port_{}.ContentImagePath".format(port_number))
             sub.subscribe_data_change(e)
+            a = self.ua_server.get_node("ns=2;s=Command.ByContent.Select")  
+            sub.subscribe_data_change(a)
+            a = self.ua_server.get_node("ns=2;s=Command.ByContent.Deselect")  
+            sub.subscribe_data_change(a)
+            a = self.ua_server.get_node("ns=2;s=Command.ByContent.Name")  
+            sub.subscribe_data_change(a)
+            a = self.ua_server.get_node("ns=2;s=Command.ByContent.Instructions")
+            sub.subscribe_data_change(a)
 
     def _event_notification(self, event):
         logger.warning("Python: New event. No function implemented. {}".format(event))
@@ -129,45 +152,63 @@ class StationUAServer:
         
         logger.debug("New data change event. node:{}, value:{}".format(node, val))
         
-        # Sorry about these two lines of code, but I don't see any nicer way of determining the port number than from 
+        # Sorry about these lines of code, but I don't see any nicer way of determining the port number than from 
         # the identifier string. Then splitting it up to isolate the port number.
         # Example "Status.Port_2.Selected"  is split into ['Status', 'Port_2', 'Selected'] then 'Port_2' is split into 
         # ['Port', '2'] and then the '2' is turned into an intiger.
-        name = str(node.nodeid.Identifier).split(".")
-        port_number = int(name[1].split("_")[1])
-        
-        # Remember if this as a status tag. Special case to auto set the command tag back to false when ever the port
-        # is deselected.
-        isStatus = name[0] == "Status"
-        
-        # using the split name we can assume that the last term is the tag that updated.
-        tag = name[-1] 
-        
-        """ Switch for each possible tag"""
-        # If the status tag "selected" changes to false. Automatically set the command tag back to false as well. 
-        if tag == 'Selected' and isStatus:
-            if val == False:
-                node = self.ua_server.get_node("ns=2;s=Command.Port_{}.Selected".format(port_number))
-                node.set_value(False)
+        path_list = str(node.nodeid.Identifier).split(".")
 
-        # If the command tag "Selected" changes go select that port with the instructions saved in the command tag. 
-        elif tag == 'Selected' and not isStatus:
+        # We can safely assume that the last term is the tag that updated.
+        tag = path_list[-1] 
+        
+        # Figure out the port number
+        port_number = None
+        if 'Port' in path_list[1]:
+            port_number = int(path_list[1].split("_")[-1])        
+    
+        """ Switch for each possible tag"""
+        # If the command tag "Select" changes go select that port with the instructions saved in the command tag. 
+        if tag == 'Select' and port_number:
             if val == True:
                 node = self.ua_server.get_node("ns=2;s=Command.Port_{}.Instructions".format(port_number))
                 instructions = node.get_value()
                 self._pbl.select_port(port_number, instructions=instructions)
-            else:
-                self._pbl.deselect_port(port_number)
+                # Reset the select flag
+                node = self.ua_server.get_node("ns=2;s=Command.Port_{}.Select".format(port_number))
+                node.set_value(False)
+        
+        elif tag == 'Deselect' and port_number:
+            if val == True:
+                self._pbl.deselect_port(port_number, work_finished=True)
+                # Reset the select flag
+                node = self.ua_server.get_node("ns=2;s=Command.Port_{}.Deselect".format(port_number))
+                node.set_value(False)
 
-        elif tag == 'ContentDisplayName':
+        elif tag == 'ContentDisplayName' and port_number:
                 self._pbl.set_content_key(port_number,'display_name', str(val))
-        elif tag == 'ContentName':
+        elif tag == 'ContentName' and port_number:
                 self._pbl.set_content_key(port_number,'name', str(val))
-        elif tag == 'ContentDescription':
+        elif tag == 'ContentDescription' and port_number:
                 self._pbl.set_content_key(port_number,'description', str(val))
-        elif tag == 'ContentImagePath':
+        elif tag == 'ContentImagePath' and port_number:
                 self._pbl.set_content_key(port_number,'image_path', str(val))
     
+        elif tag == 'Select' and 'ByContent' in path_list[1]:
+            if val == True:
+                instructions = self.ua_server.get_node("ns=2;s=Command.ByContent.Instructions").get_value()
+                name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()
+                self._pbl.select_content(name = name, instructions=instructions)
+                # Reset the select flag
+                node = self.ua_server.get_node("ns=2;s=Command.ByContent.Select")
+                node.set_value(False)
+        elif tag == 'Deselect' and 'ByContent' in path_list[1]:
+            if val == True:
+                name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()
+                self._pbl.deselect_content(name = name, work_finished=True)
+                # Reset the select flag
+                node = self.ua_server.get_node("ns=2;s=Command.ByContent.Deselect")
+                node.set_value(False)
+
 
     def _var_updater(self):
         while True:
@@ -185,6 +226,8 @@ class StationUAServer:
                 state = self._pbl.get_port_state(port_number)         
                 node = self.ua_server.get_node("ns=2;s=Status.Port_{}.Selected".format(port_number))
                 node.set_value(state.selected)
+                node = self.ua_server.get_node("ns=2;s=Status.Port_{}.WorkFinished".format(port_number))
+                node.set_value(state.work_finished)
                 node = self.ua_server.get_node("ns=2;s=Status.Port_{}.Instructions".format(port_number))
                 node.set_value(state.select_instructions)
 

@@ -71,6 +71,28 @@ class PickByLight:
         self._ports_state[port_number].select_instructions = instructions
         Thread(target=self._signal_thread, args=(port_number,), daemon=True).start()
         return True
+    
+    def select_content(self, name, amount = 1, instructions = ''):
+        """Select a port from the content within it. Instructions can be sent
+        along with the selection to instruct the worker on what to do. 
+        The first port with a matching content name will be selected.  
+
+        Args:
+            name (string): name of the content to be selected
+            amount (int, optional): Amount to pick. Defaults to 1.
+            instructions (str, optional): Instructions to be displayed for the worker. Defaults to ''.
+
+        Returns:
+            bool: success
+            int: port number selected. returns -1 if not successful
+        """
+        for port_number, content in self._content_map.items():
+            if content.get('name', None) == name:
+                success = self.select_port(port_number, amount, instructions)
+                return success, port_number
+        else:
+            return False, -1
+
 
     def work_finished(self,port_number):
         """Set flag that the work on this port is now done and submitted.
@@ -89,7 +111,7 @@ class PickByLight:
 
         Args:
             port_number (int): The port number to be deselected
-            work_finished (bool): Is the work done 
+            work_finished (bool): Is the work done or should we just turn off the led.
 
         Returns:
             bool: success
@@ -103,6 +125,24 @@ class PickByLight:
         self._ports_state[port_number].amount_to_pick = 0
         self._ports_state[port_number].select_instructions = ''
         return True
+    
+    def deselect_content(self, name, work_finished=False):
+        """Deselect a port with the giver content name. 
+
+        Args:
+            name (str): The name of the content to be deselected
+            work_finished (bool): Is the work done or should we just turn off the led
+
+        Returns:
+            bool: success
+            int: port number deselected. returns -1 if not successful
+        """
+        for port_number, content in self._content_map.items():
+            if content.get('name', None) == name:
+                success = self.deselect_port(port_number, work_finished)
+                return success, port_number
+        else:
+            return False, -1
     
     def deselect_all(self):
         """Deselect and marks all ports as finished
@@ -302,7 +342,7 @@ class PickByLight:
             self.deselect_port(port_number)
         else:
             logger.info('activity on port: {} cased a warning light to be triggered because the port was not selected')
-            Thread(target=self._warning_signal_thread,daemon=True,args=(port_number,)).start()   
+            Thread(target=self._warning_signal_thread, daemon=True, args=(port_number,)).start()   
     
     def _set_callbacks(self):
         """Sets the callback on all the ports for when an activity occurs"""
