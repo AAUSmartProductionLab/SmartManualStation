@@ -1,7 +1,7 @@
 
-pi2:
+pidanfos:
 	rsync -rv -e'ssh -J remote.moe' ./ pi@smartmanualstationdanfoss2.remote.moe:SmartManualStation/src
-pi2clean:
+pidanfosclean:
 	rsync -rv -e 'ssh -J remote.moe' --delete ./ pi@smartmanualstationdanfoss2.remote.moe:SmartManualStation/src
 
 piremote:
