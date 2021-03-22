@@ -95,8 +95,9 @@ class StationUAServer:
 
         b_obj.add_variable("ns=2;s=Command.ByContent.Select"         ,"Select"          , bool()).set_writable()
         b_obj.add_variable("ns=2;s=Command.ByContent.Deselect"       ,"Deselect"        , bool()).set_writable()
-        b_obj.add_variable("ns=2;s=Command.ByContent.Name"           ,"Name"      , ""    ).set_writable()
+        b_obj.add_variable("ns=2;s=Command.ByContent.Name"           ,"Name"            , ""    ).set_writable()
         b_obj.add_variable("ns=2;s=Command.ByContent.Instructions"   ,"Instructions"    , ""    ).set_writable()
+        b_obj.add_variable("ns=2;s=Command.ByContent.Result"         ,"Result"          , -1    ).set_writable()
 
 
 
@@ -197,10 +198,13 @@ class StationUAServer:
             if val == True:
                 instructions = self.ua_server.get_node("ns=2;s=Command.ByContent.Instructions").get_value()
                 name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()
-                self._pbl.select_content(name = name, instructions=instructions)
+                _, selected_port = self._pbl.select_content(name = name, instructions=instructions)
                 # Reset the select flag
                 node = self.ua_server.get_node("ns=2;s=Command.ByContent.Select")
                 node.set_value(False)
+                node = self.ua_server.get_node("ns=2;s=Command.ByContent.Result")
+                node.set_value(selected_port)
+
         elif tag == 'Deselect' and 'ByContent' in path_list[1]:
             if val == True:
                 name = self.ua_server.get_node("ns=2;s=Command.ByContent.Name").get_value()

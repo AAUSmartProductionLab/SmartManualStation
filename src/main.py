@@ -18,6 +18,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 parser.add_argument("-d", "--dummy", help="run in dummy mode without the actual hardware", action="store_true")
 parser.add_argument("-C", "--content_map", help="path to the content map", type=str)
+parser.add_argument("-f", "--festo_connect", help="enable festo connect", action="store_true")
+parser.add_argument("-i", "--festo_connect_ip", help="ip address for festo connect", type=str)
 
 # If verbose flag set the debugger level accordingly on all improted files 
 # TODO Setting the debug level seems to not work correctly.
@@ -57,10 +59,9 @@ if __name__ == "__main__":
     # Create our gui interface, passing in our pick by light instance.
     GUI = gui.Gui(PBL)
 
-    # Create festo connect object
-    FC = festo_connect.FestoServer(PBL,"192.168.1.68")
-
-
+    if args.festo_connect:
+        # Create festo connect object
+        FC = festo_connect.FestoServer(PBL,args.festo_connect_ip)
 
     try:
         # GUI.run blocks untill it exits
